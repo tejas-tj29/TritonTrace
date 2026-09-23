@@ -1,1 +1,30 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
+
+@theme {
+  --color-tactical-dark: #020617;
+  --color-tactical-panel: #0f172a;
+  --color-tactical-border: #1e293b;
+  --color-tactical-slick: #22d3ee;
+  --color-tactical-origin: #34d399;
+  --color-tactical-danger: #f43f5e;
+  --color-tactical-warning: #fbbf24;
+}
+
+/* Core Mapbox & tactical fullscreen display overrides */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #020617;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* Mapbox canvas fills container */
+.mapboxgl-map {
+  width: 100%;
+  height: 100%;
+}
