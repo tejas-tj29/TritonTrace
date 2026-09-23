@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Radar, 
@@ -13,9 +14,15 @@ import {
   Ship
 } from 'lucide-react';
 
-export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, onToggleDemo }) => {
+export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, onToggleDemo, engine = 'leaflet' }) => {
   const { role, user, logout, roleDefinition } = useAuth();
+  const navigate = useNavigate();
   const [utcTime, setUtcTime] = useState('');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   // Live ticking UTC clock
   useEffect(() => {
@@ -93,7 +100,7 @@ export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, o
           <Activity className="h-3 w-3 text-emerald-400" />
           <span className="text-slate-300 font-medium">SYS: ONLINE</span>
           <span className="text-slate-600">|</span>
-          <span className="text-slate-400">GEO: READY</span>
+          <span className="text-slate-400 uppercase">GEO: {engine}</span>
         </div>
 
         {/* UTC Clock */}
@@ -137,7 +144,7 @@ export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, o
         {/* Logout */}
         <button
           type="button"
-          onClick={logout}
+          onClick={handleLogout}
           title="Exit Session"
           className="flex items-center space-x-1.5 rounded-md border border-rose-500/30 bg-rose-950/20 px-2.5 py-1 text-xs font-medium text-rose-300 hover:bg-rose-900/40 hover:border-rose-500/50 transition"
         >

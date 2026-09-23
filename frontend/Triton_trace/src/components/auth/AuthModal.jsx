@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth, ROLE_DEFINITIONS } from '../../context/AuthContext';
 import { 
   ShieldAlert,  
@@ -41,6 +42,7 @@ const DEFAULT_CREDENTIALS = {
 
 export const AuthModal = ({ isOpen = true, onClose }) => {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: Role Select, 2: Credentials
   const [selectedRole, setSelectedRole] = useState('admin');
   const [credentials, setCredentials] = useState({
@@ -72,6 +74,13 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
     setStep(2);
   };
 
+  const handleQuickEnter = (roleKey) => {
+    const targetRole = roleKey || selectedRole;
+    login(targetRole, DEFAULT_CREDENTIALS[targetRole] || {});
+    if (onClose) onClose();
+    navigate(`/portal/${targetRole}`);
+  };
+
   const handlePrevStep = () => {
     setError('');
     setStep(1);
@@ -87,14 +96,13 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
     setIsSubmitting(true);
     setError('');
 
-    // Simulate realistic authorization handshake
+    // Simulate realistic authorization handshake then route to respective portal
     setTimeout(() => {
-      const success = login(selectedRole, credentials);
+      login(selectedRole, credentials);
       setIsSubmitting(false);
-      if (success && onClose) {
-        onClose();
-      }
-    }, 450);
+      if (onClose) onClose();
+      navigate(`/portal/${selectedRole}`);
+    }, 250);
   };
 
   const activeRoleDef = ROLE_DEFINITIONS[selectedRole];
@@ -207,7 +215,15 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
               })}
             </div>
 
-            <div className="mt-6 flex justify-end pt-2">
+            <div className="mt-6 flex items-center justify-between pt-2 border-t border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => handleQuickEnter(selectedRole)}
+                className="text-[11px] text-slate-400 hover:text-cyan-300 font-mono transition flex items-center space-x-1"
+              >
+                <span>⚡ Instant Entry ({ROLE_DEFINITIONS[selectedRole]?.title})</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleNextStep}

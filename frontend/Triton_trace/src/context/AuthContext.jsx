@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import { createContext, useContext, useState, useMemo } from 'react';
 
 export const ROLES = {
   PUBLIC: 'public',
@@ -40,37 +40,30 @@ export const ROLE_DEFINITIONS = {
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [role, setRole] = useState(ROLES.PUBLIC);
-  const [user, setUser] = useState(null);
+  // Holds a user state defaulting to { role: 'public' }
+  const [user, setUser] = useState({ role: 'public' });
 
-  const login = (selectedRole, credentials = {}) => {
-    if (!['normal', 'admin', 'commercial'].includes(selectedRole)) {
-      console.error(`Invalid role: ${selectedRole}`);
-      return false;
-    }
-    setRole(selectedRole);
+  const login = (role, extraDetails = {}) => {
     setUser({
-      email: credentials.email || `${selectedRole}@tritontrace.io`,
-      agency: credentials.agency || (selectedRole === 'admin' ? 'IT-COASTGUARD-PSC' : selectedRole === 'commercial' ? 'IMO-948271' : 'LOCAL-PATROL-04'),
-      role: selectedRole,
+      role: role || 'normal',
+      email: extraDetails.email || `${role}@tritontrace.io`,
+      agency: extraDetails.agency || (role === 'admin' ? 'IT-COASTGUARD-PSC' : role === 'commercial' ? 'IMO-948271' : 'LOCAL-PATROL-04'),
       loginTimestamp: new Date().toISOString()
     });
-    return true;
   };
 
   const logout = () => {
-    setRole(ROLES.PUBLIC);
-    setUser(null);
+    setUser({ role: 'public' });
   };
 
   const value = useMemo(() => ({
-    role,
     user,
-    isAuthenticated: role !== ROLES.PUBLIC,
+    role: user?.role || 'public',
+    isAuthenticated: user?.role && user.role !== 'public',
+    roleDefinition: ROLE_DEFINITIONS[user?.role] || null,
     login,
-    logout,
-    roleDefinition: ROLE_DEFINITIONS[role] || null
-  }), [role, user]);
+    logout
+  }), [user]);
 
   return (
     <AuthContext.Provider value={value}>
