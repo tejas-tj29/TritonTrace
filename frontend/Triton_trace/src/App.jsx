@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { RoleGuard } from './components/auth/RoleGuard';
+import Layout from './layout';
 import { LandingPage } from './components/landing/LandingPage';
 import { TopHUD } from './components/layout/TopHUD';
 import { MapCanvas } from './components/map/MapCanvas';
@@ -14,10 +15,6 @@ import {
   LogOut,
 } from 'lucide-react';
 
-/**
- * Common Operational Workspace Shell for Portals
- * Clean, flat, white scientific aesthetic (SkyTruth Cerulean style)
- */
 function PortalWorkspace({ portalType }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -150,11 +147,11 @@ function PortalWorkspace({ portalType }) {
 
 export default function App() {
   return (
-    /* Notice: <BrowserRouter> and <AuthProvider> are REMOVED here. 
-       They must live in main.jsx so they wrap the entire application properly. */
     <Routes>
-      {/* Root Route: Landing Page containing the Gateway/Auth Modal */}
-      <Route path="/" element={<LandingPage />} />
+      {/* Public Pages wrapped in Layout (Navbar + Footer) */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<LandingPage />} />
+      </Route>
 
       {/* Distinct Portal Route: Normal User */}
       <Route

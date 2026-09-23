@@ -5,10 +5,10 @@
 
 export const mockIncident = {
   incident_id: "Med-Spill-017",
-  aoi_name: "Mediterranean Sea AOI",
+  aoi_name: "Eastern Mediterranean AOI",
   source_type: "satellite_detected",
   status: "under_investigation",
-  coordinates: { lat: 35.8989, lon: 14.5146 },
+  coordinates: { lat: 32.5, lon: 33.1 },
   slick_area_sqkm: 14.6,
   perimeter_km: 28.4,
   geometry_elongation_ratio: "1:8.2", // Indicates linear vessel discharge
@@ -23,7 +23,7 @@ export const mockIncident = {
     radar_backscatter_db: -22.4
   },
   hindcast_origin: {
-    centroid: { lat: 35.7410, lon: 14.3280 },
+    centroid: { lat: 32.35, lon: 32.92 },
     release_window: "2026-09-22T00:30:00Z to 2026-09-22T01:30:00Z",
     uncertainty_radius_km: 1.8
   },
@@ -64,84 +64,84 @@ export const mockAISVessels = [
 export const mockHistoricalIncidents = [
   {
     incident_id: "Med-Spill-017",
-    aoi_name: "Mediterranean Sea AOI",
-    region: "Mediterranean Sea AOI",
+    aoi_name: "Eastern Mediterranean AOI",
+    region: "Eastern Mediterranean AOI",
     source: "Sentinel-1 SAR",
     source_type: "satellite_detected",
     status: "under_investigation",
-    coordinates: { lat: 35.8989, lon: 14.5146 },
+    coordinates: { lat: 32.5, lon: 33.1 },
     slick_area_sqkm: 14.6,
     perimeter_km: 28.4,
     detection_timestamp: "2026-09-22T06:30:00Z",
     severity: "Major",
     slick_polygon: [
-      [14.4820, 35.9120],
-      [14.5050, 35.9080],
-      [14.5380, 35.8920],
-      [14.5460, 35.8850],
-      [14.5240, 35.8890],
-      [14.4910, 35.9010],
-      [14.4820, 35.9120]
+      [33.05, 32.52],
+      [33.15, 32.51],
+      [33.25, 32.48],
+      [33.28, 32.45],
+      [33.20, 32.47],
+      [33.08, 32.50],
+      [33.05, 32.52]
     ]
   },
   {
     incident_id: "Med-Spill-016",
-    aoi_name: "Strait of Sicily",
-    region: "Strait of Sicily",
+    aoi_name: "South of Crete",
+    region: "South of Crete",
     source: "Sentinel-1 SAR",
     source_type: "satellite_detected",
     status: "closed",
-    coordinates: { lat: 36.4120, lon: 13.1250 },
+    coordinates: { lat: 34.2, lon: 26.5 },
     slick_area_sqkm: 8.2,
     perimeter_km: 19.1,
     detection_timestamp: "2026-09-18T14:15:00Z",
     severity: "Moderate",
     slick_polygon: [
-      [13.1050, 36.4250],
-      [13.1350, 36.4200],
-      [13.1480, 36.4050],
-      [13.1200, 36.4020],
-      [13.1050, 36.4250]
+      [26.48, 34.22],
+      [26.52, 34.21],
+      [26.54, 34.18],
+      [26.49, 34.17],
+      [26.48, 34.22]
     ]
   },
   {
     incident_id: "Med-Spill-015",
-    aoi_name: "Ligurian Sea",
-    region: "Ligurian Sea",
+    aoi_name: "Rhodes Basin",
+    region: "Rhodes Basin",
     source: "Sentinel-1 SAR",
     source_type: "satellite_detected",
     status: "closed",
-    coordinates: { lat: 43.5200, lon: 9.2400 },
+    coordinates: { lat: 35.8, lon: 28.4 },
     slick_area_sqkm: 5.4,
     perimeter_km: 12.8,
     detection_timestamp: "2026-09-12T09:45:00Z",
     severity: "Minor",
     slick_polygon: [
-      [9.2250, 43.5300],
-      [9.2550, 43.5250],
-      [9.2500, 43.5120],
-      [9.2200, 43.5180],
-      [9.2250, 43.5300]
+      [28.38, 35.82],
+      [28.42, 35.81],
+      [28.41, 35.78],
+      [28.37, 35.79],
+      [28.38, 35.82]
     ]
   },
   {
     incident_id: "RPT-20260920-0041",
-    aoi_name: "Ionian Sea",
-    region: "Ionian Sea",
+    aoi_name: "Levantine Basin",
+    region: "Levantine Basin",
     source: "Field Observer / Patrol",
     source_type: "citizen_report",
     status: "review",
-    coordinates: { lat: 37.8900, lon: 16.4200 },
+    coordinates: { lat: 33.8, lon: 34.5 },
     slick_area_sqkm: 3.1,
     perimeter_km: 8.5,
     detection_timestamp: "2026-09-20T17:10:00Z",
     severity: "Minor",
     slick_polygon: [
-      [16.4050, 37.8980],
-      [16.4350, 37.8920],
-      [16.4280, 37.8820],
-      [16.4020, 37.8890],
-      [16.4050, 37.8980]
+      [34.48, 33.82],
+      [34.52, 33.81],
+      [34.51, 33.78],
+      [34.47, 33.79],
+      [34.48, 33.82]
     ]
   }
 ];

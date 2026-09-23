@@ -4,7 +4,6 @@ import {
   Clock, 
   ShieldCheck, 
   Ship,
-  TrendingUp,
   Activity
 } from 'lucide-react';
 

@@ -15,9 +15,21 @@ export const MapCanvas = ({
 }) => {
   // Read environment configuration with explicit numeric casting per PRD 6.2
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-  const defaultLat = Number(import.meta.env.VITE_DEFAULT_LAT) || 35.8989;
-  const defaultLon = Number(import.meta.env.VITE_DEFAULT_LON) || 14.5146;
-  const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM) || 6.8;
+  const defaultLat = Number(import.meta.env.VITE_DEFAULT_LAT) || 31.350;
+  const defaultLon = Number(import.meta.env.VITE_DEFAULT_LON) || 31.685;
+  const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM) || 5.5;
+
+  const initialViewState = {
+    longitude: defaultLon,
+    latitude: defaultLat,
+    zoom: defaultZoom
+  };
+
+  // Target AOI Bounding Box: Longitude 18.37°E to 45.0°E, Latitude 25.0°N to 37.7°N
+  const aoiMaxBounds = [
+    [18.37, 25.0], // Southwest [lng, lat]
+    [45.0, 37.7]   // Northeast [lng, lat]
+  ];
 
   // If token is missing, activate fallback immediately to avoid any Mapbox console warnings
   const [useFallback, setUseFallback] = useState(!token || token.trim() === '');
@@ -45,8 +57,9 @@ export const MapCanvas = ({
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: 'mapbox://styles/mapbox/dark-v11',
-        center: [defaultLon, defaultLat],
-        zoom: defaultZoom,
+        center: [initialViewState.longitude, initialViewState.latitude],
+        zoom: initialViewState.zoom,
+        maxBounds: aoiMaxBounds,
         interactive: interactive,
         attributionControl: false
       });
@@ -63,7 +76,7 @@ export const MapCanvas = ({
       map.on('load', () => {
         if (onEngineResolved) onEngineResolved('mapbox');
 
-        // Add incident slick GeoJSON polygon for Med-Spill-017
+        // Add incident slick GeoJSON polygon for Med-Spill-017 centered in Eastern Med AOI
         try {
           map.addSource('slick-source', {
             type: 'geojson',
@@ -72,13 +85,13 @@ export const MapCanvas = ({
               geometry: {
                 type: 'Polygon',
                 coordinates: [[
-                  [14.4820, 35.9120],
-                  [14.5050, 35.9080],
-                  [14.5380, 35.8920],
-                  [14.5460, 35.8850],
-                  [14.5240, 35.8890],
-                  [14.4910, 35.9010],
-                  [14.4820, 35.9120]
+                  [33.05, 32.52],
+                  [33.15, 32.51],
+                  [33.25, 32.48],
+                  [33.28, 32.45],
+                  [33.20, 32.47],
+                  [33.08, 32.50],
+                  [33.05, 32.52]
                 ]]
               },
               properties: {

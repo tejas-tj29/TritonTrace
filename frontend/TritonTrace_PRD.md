@@ -365,19 +365,15 @@ VITE_SOCKET_URL=http://localhost:5000
 # Map
 VITE_MAPBOX_ACCESS_TOKEN=
 
-# Fixed AOI
-VITE_DEFAULT_AOI_NAME=Mediterranean Sea AOI
-VITE_DEFAULT_LAT=35.8989
-VITE_DEFAULT_LON=14.5146
-VITE_DEFAULT_ZOOM=6.8
-
-# Physics / thresholds
-VITE_WIND_THRESHOLD_MS=3.0
-VITE_LEEWAY_FACTOR=0.03
-VITE_HINDCAST_HOURS=12
-VITE_HINDCAST_STEP_MINUTES=15
-VITE_HINDCAST_PARTICLES=1000
-```
+# Fixed AOI (Eastern Mediterranean / Target Region)
+VITE_DEFAULT_AOI_NAME=Eastern Mediterranean AOI
+VITE_DEFAULT_LAT=31.350
+VITE_DEFAULT_LON=31.685
+VITE_DEFAULT_ZOOM=5.5
+VITE_AOI_BOUNDS_SW_LON=18.37
+VITE_AOI_BOUNDS_SW_LAT=25.0
+VITE_AOI_BOUNDS_NE_LON=45.0
+VITE_AOI_BOUNDS_NE_LAT=37.7
 
 ## 6.1 Map fallback
 
@@ -1347,7 +1343,7 @@ export const mockIncident = {
   aoi_name: "Mediterranean Sea AOI",
   source_type: "satellite_detected",
   status: "under_investigation",
-  coordinates: { lat: 35.8989, lon: 14.5146 },
+  coordinates: { lat: 32.5, lon: 33.1 },
   slick_area_sqkm: 14.6,
   perimeter_km: 28.4,
   geometry_elongation_ratio: "1:8.2", // Indicates linear vessel discharge

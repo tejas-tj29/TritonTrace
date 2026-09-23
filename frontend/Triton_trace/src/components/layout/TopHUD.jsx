@@ -47,70 +47,70 @@ export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, o
 
   const getRoleBadgeClasses = () => {
     if (role === 'admin') {
-      return 'border-cyan-500/40 bg-cyan-950/40 text-cyan-300';
+      return 'border-brand-200 bg-brand-50 text-brand-700';
     }
     if (role === 'commercial') {
-      return 'border-violet-500/40 bg-violet-950/40 text-violet-300';
+      return 'border-violet-200 bg-violet-50 text-violet-700';
     }
-    return 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300';
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   };
 
   return (
-    <header className="relative z-30 flex h-14 w-full items-center justify-between border-b border-slate-800 bg-slate-950/95 px-4 backdrop-blur-md">
+    <header className="relative z-30 flex h-14 w-full items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm select-none text-slate-900">
       {/* Left: Brand + Active Incident + AOI */}
       <div className="flex items-center space-x-4">
         {/* Wordmark */}
         <div className="flex items-center space-x-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-cyan-500/40 bg-cyan-950/50 text-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.2)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-brand-200 bg-brand-50 text-brand-600">
             <Radar className="h-4 w-4" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center space-x-1.5">
-              <span className="font-mono text-sm font-bold tracking-wider text-slate-100">TRITONTRACE</span>
-              <span className="rounded bg-slate-800 px-1 py-0.2 font-mono text-[9px] font-semibold text-cyan-400">v2.0</span>
+              <span className="font-mono text-sm font-bold tracking-wider text-slate-900">TRITONTRACE</span>
+              <span className="rounded bg-slate-100 px-1 py-0.2 font-mono text-[9px] font-semibold text-brand-600 border border-slate-200">v2.0</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-medium tracking-tight">MARITIME FORENSIC INTELLIGENCE</span>
+            <span className="text-[10px] text-slate-500 font-medium tracking-tight">MARITIME FORENSIC INTELLIGENCE</span>
           </div>
         </div>
 
-        <div className="h-5 w-px bg-slate-800 hidden sm:block" />
+        <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
         {/* Active Incident Identifier */}
-        <div className="hidden sm:flex items-center space-x-2 rounded-md border border-slate-800 bg-slate-900/80 px-2.5 py-1">
-          <span className="text-[10px] uppercase tracking-wider text-slate-400">INCIDENT:</span>
-          <span className="font-mono text-xs font-semibold text-cyan-400">{activeIncidentId}</span>
+        <div className="hidden sm:flex items-center space-x-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">INCIDENT:</span>
+          <span className="font-mono text-xs font-bold text-brand-600">{activeIncidentId}</span>
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
           </span>
         </div>
 
         {/* AOI Location */}
-        <div className="hidden md:flex items-center space-x-1.5 text-xs text-slate-400">
-          <Globe2 className="h-3.5 w-3.5 text-slate-500" />
-          <span className="font-mono text-[11px] text-slate-300">Mediterranean Sea AOI</span>
-          <span className="text-[10px] font-mono text-slate-500">(35.89°N, 14.51°E)</span>
+        <div className="hidden md:flex items-center space-x-1.5 text-xs text-slate-500">
+          <Globe2 className="h-3.5 w-3.5 text-slate-400" />
+          <span className="font-mono text-[11px] text-slate-700 font-medium">Eastern Mediterranean AOI</span>
+          <span className="text-[10px] font-mono text-slate-400">(31.35°N, 31.69°E)</span>
         </div>
       </div>
 
       {/* Right: Engine Status + UTC Clock + Role Badge + Demo + Logout */}
       <div className="flex items-center space-x-3">
         {/* System & Engine Status */}
-        <div className="hidden lg:flex items-center space-x-1.5 rounded border border-slate-800/80 bg-slate-900/50 px-2 py-0.5 font-mono text-[10px] text-slate-400">
-          <Activity className="h-3 w-3 text-emerald-400" />
-          <span className="text-slate-300 font-medium">SYS: ONLINE</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-slate-400 uppercase">GEO: {engine}</span>
+        <div className="hidden lg:flex items-center space-x-1.5 rounded border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[10px] text-slate-600">
+          <Activity className="h-3 w-3 text-emerald-600" />
+          <span className="text-slate-800 font-semibold">SYS: ONLINE</span>
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-500 uppercase">GEO: {engine}</span>
         </div>
 
         {/* UTC Clock */}
-        <div className="flex items-center space-x-1.5 rounded border border-slate-800 bg-slate-900/90 px-2.5 py-1 font-mono text-xs text-slate-200">
-          <Clock className="h-3.5 w-3.5 text-cyan-400" />
-          <span>{utcTime || '00:00:00 UTC'}</span>
+        <div className="flex items-center space-x-1.5 rounded border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs text-slate-800">
+          <Clock className="h-3.5 w-3.5 text-slate-500" />
+          <span className="font-semibold">{utcTime || '00:00:00 UTC'}</span>
         </div>
 
         {/* Active Role Badge */}
-        <div className={`flex items-center space-x-1.5 rounded-full border px-2.5 py-1 text-xs font-medium font-mono ${getRoleBadgeClasses()}`}>
+        <div className={`flex items-center space-x-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold font-mono ${getRoleBadgeClasses()}`}>
           {getRoleIcon()}
           <span>{roleDefinition?.badge || role?.toUpperCase()}</span>
         </div>
@@ -120,13 +120,13 @@ export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, o
           <button
             type="button"
             onClick={onToggleDemo}
-            className={`hidden sm:flex items-center space-x-1.5 rounded border px-2.5 py-1 text-xs font-mono transition ${
+            className={`hidden sm:flex items-center space-x-1.5 rounded border px-2.5 py-1 text-xs font-mono font-medium transition cursor-pointer ${
               demoMode
-                ? 'border-amber-500/50 bg-amber-950/40 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.2)]'
-                : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'
+                ? 'border-amber-300 bg-amber-50 text-amber-800'
+                : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
             <span>DEMO MODE</span>
           </button>
         )}
@@ -135,10 +135,10 @@ export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, o
         <button
           type="button"
           aria-label="Notifications"
-          className="relative flex h-8 w-8 items-center justify-center rounded-md border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:border-slate-700 transition"
+          className="relative flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-cyan-400" />
+          <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-brand-600" />
         </button>
 
         {/* Logout */}
@@ -146,10 +146,10 @@ export const TopHUD = ({ activeIncidentId = 'Med-Spill-017', demoMode = false, o
           type="button"
           onClick={handleLogout}
           title="Exit Session"
-          className="flex items-center space-x-1.5 rounded-md border border-rose-500/30 bg-rose-950/20 px-2.5 py-1 text-xs font-medium text-rose-300 hover:bg-rose-900/40 hover:border-rose-500/50 transition"
+          className="flex items-center space-x-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-rose-600 transition cursor-pointer"
         >
           <LogOut className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Logout</span>
+          <span className="hidden sm:inline font-semibold">Logout</span>
         </button>
       </div>
     </header>

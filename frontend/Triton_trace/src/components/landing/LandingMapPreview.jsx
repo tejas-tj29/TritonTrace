@@ -46,12 +46,12 @@ export const LandingMapPreview = () => {
       {/* Coordinate Markings */}
       <div className="absolute top-3 left-3 font-mono text-[10px] bg-white text-slate-800 border border-slate-200 px-2.5 py-1 rounded-md shadow-sm z-10 flex items-center space-x-2">
         <span className="flex h-1.5 w-1.5 rounded-full bg-brand-600 animate-ping" />
-        <span className="font-semibold text-brand-600">AOI: MEDITERRANEAN SEA</span>
+        <span className="font-semibold text-brand-600">AOI: EASTERN MEDITERRANEAN</span>
         <span className="text-slate-300">|</span>
         <span className="text-slate-600">SECTOR 4</span>
       </div>
       <div className="absolute top-3 right-3 font-mono text-[10px] bg-white text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md shadow-sm z-10 font-semibold">
-        35°53'56"N 14°30'52"E
+        31°21'00"N 31°41'06"E
       </div>
 
       {/* Vector Visualization Surface */}

@@ -16,8 +16,8 @@ L.Icon.Default.mergeOptions({
  * Uses CartoDB Dark Matter tiles for a tactical intelligence appearance.
  */
 export const FallbackLeaflet = ({
-  center = [35.8989, 14.5146], // Leaflet uses [Latitude, Longitude]
-  zoom = 6.8,
+  center = [31.350, 31.685], // Leaflet uses [Latitude, Longitude]
+  zoom = 5.5,
   interactive = true,
   className = ''
 }) => {
@@ -28,10 +28,15 @@ export const FallbackLeaflet = ({
     if (!containerRef.current || mapRef.current) return;
 
     try {
+      // Bounding box: Longitude 18.37°E to 45.0°E, Latitude 25.0°N to 37.7°N
+      const bounds = L.latLngBounds([25.0, 18.37], [37.7, 45.0]);
+
       // Initialize Leaflet map instance
       const map = L.map(containerRef.current, {
         center: center,
         zoom: zoom,
+        maxBounds: bounds,
+        maxBoundsViscosity: 1.0,
         zoomControl: false,
         attributionControl: false,
         dragging: interactive,
@@ -59,15 +64,15 @@ export const FallbackLeaflet = ({
         L.control.zoom({ position: 'bottomright' }).addTo(map);
       }
 
-      // Incident Slick Polygon for Med-Spill-017
+      // Incident Slick Polygon for Med-Spill-017 centered at Lat 32.5, Lon 33.1
       const slickCoords = [
-        [35.9120, 14.4820],
-        [35.9080, 14.5050],
-        [35.8920, 14.5380],
-        [35.8850, 14.5460],
-        [35.8890, 14.5240],
-        [35.9010, 14.4910],
-        [35.9120, 14.4820]
+        [32.52, 33.05],
+        [32.51, 33.15],
+        [32.48, 33.25],
+        [32.45, 33.28],
+        [32.47, 33.20],
+        [32.50, 33.08],
+        [32.52, 33.05]
       ];
 
       L.polygon(slickCoords, {
@@ -79,7 +84,7 @@ export const FallbackLeaflet = ({
       }).addTo(map);
 
       // Hindcast Origin Uncertainty Circle (1.8km radius)
-      L.circle([35.7410, 14.3280], {
+      L.circle([32.35, 32.92], {
         radius: 1800,
         color: '#34d399',
         weight: 1.5,
@@ -90,8 +95,8 @@ export const FallbackLeaflet = ({
 
       // Discharge drift vector line (from origin to slick)
       L.polyline([
-        [35.7410, 14.3280],
-        [35.8989, 14.5146]
+        [32.35, 32.92],
+        [32.50, 33.10]
       ], {
         color: '#34d399',
         weight: 1.5,
@@ -100,7 +105,7 @@ export const FallbackLeaflet = ({
       }).addTo(map);
 
       // Target slick marker
-      L.circleMarker([35.8989, 14.5146], {
+      L.circleMarker([32.50, 33.10], {
         radius: 6,
         color: '#22d3ee',
         fillColor: '#0891b2',
@@ -109,7 +114,7 @@ export const FallbackLeaflet = ({
       }).addTo(map);
 
       // AIS Correlated Vessel (Pacific Horizon)
-      L.circleMarker([35.7440, 14.3350], {
+      L.circleMarker([32.36, 32.93], {
         radius: 5,
         color: '#f43f5e',
         fillColor: '#f43f5e',

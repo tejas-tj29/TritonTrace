@@ -13,7 +13,8 @@ import {
   Mail, 
   CheckCircle2, 
   Satellite, 
-  AlertCircle 
+  AlertCircle,
+  X 
 } from 'lucide-react';
 
 const ROLE_ICONS = {
@@ -109,38 +110,49 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      {/* Darkened overlay backdrop */}
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" />
+      {/* Backdrop overlay */}
+      <div 
+        className="absolute inset-0 bg-slate-900/40 cursor-pointer" 
+        onClick={onClose} 
+      />
 
-      {/* Glassmorphic Modal Box */}
-      <div className="relative w-full max-w-xl overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/85 p-6 sm:p-8 shadow-[0_20px_70px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-all">
-        {/* Top tactical telemetry strip */}
-        <div className="mb-6 flex items-center justify-between border-b border-slate-800/80 pb-4">
+      {/* Clean White Modal Box */}
+      <div className="relative w-full max-w-xl overflow-hidden rounded-md border border-slate-200 bg-white p-6 sm:p-8 shadow-xl transition-all text-slate-900">
+        {/* Top telemetry strip */}
+        <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center space-x-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/40 bg-cyan-950/40 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.25)]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-200 bg-brand-50 text-brand-600">
               <Satellite className="h-5 w-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-mono text-xs font-semibold tracking-widest text-cyan-400">TRITONTRACE</span>
-                <span className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">SECURE GATEWAY</span>
+                <span className="font-mono text-xs font-bold tracking-widest text-brand-600">TRITONTRACE</span>
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 border border-slate-200">SECURE GATEWAY</span>
               </div>
-              <h2 className="text-sm font-medium text-slate-200">Forensic Access Control & RBAC</h2>
+              <h2 className="text-sm font-semibold text-slate-800">Forensic Access Control & RBAC</h2>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 font-mono text-xs">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium border ${
-              step === 1 ? 'border-amber-500/40 bg-amber-950/30 text-amber-300' : 'border-cyan-500/40 bg-cyan-950/30 text-cyan-300'
-            }`}>
+          <div className="flex items-center space-x-3 font-mono text-xs">
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium border border-slate-200 bg-slate-50 text-slate-700">
               STEP {step} / 2
             </span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                aria-label="Close modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
         {error && (
-          <div className="mb-5 flex items-center space-x-2 rounded-md border border-rose-500/40 bg-rose-950/40 px-3.5 py-2.5 text-xs text-rose-300">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+          <div className="mb-5 flex items-center space-x-2 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-700">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
             <span>{error}</span>
           </div>
         )}
@@ -149,8 +161,8 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-base font-semibold text-slate-100">Select Operational Role</h3>
-              <p className="mt-1 text-xs text-slate-400">
+              <h3 className="text-base font-semibold text-slate-900">Select Operational Role</h3>
+              <p className="mt-1 text-xs text-slate-600">
                 Choose domain authorization level. Permissions and available forensic tools will adapt accordingly.
               </p>
             </div>
@@ -160,11 +172,11 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
                 const IconComponent = ROLE_ICONS[r.id] || ShieldAlert;
                 const isSelected = selectedRole === r.id;
 
-                let borderStyle = 'border-slate-800 hover:border-slate-700 bg-slate-900/50';
+                let borderStyle = 'border-slate-200 hover:border-slate-300 bg-slate-50/60';
                 if (isSelected) {
-                  if (r.accentColor === 'cyan') borderStyle = 'border-cyan-400/80 bg-cyan-950/20 ring-1 ring-cyan-500/30';
-                  else if (r.accentColor === 'emerald') borderStyle = 'border-emerald-400/80 bg-emerald-950/20 ring-1 ring-emerald-500/30';
-                  else borderStyle = 'border-violet-400/80 bg-violet-950/20 ring-1 ring-violet-500/30';
+                  if (r.accentColor === 'cyan') borderStyle = 'border-brand-600 bg-brand-50/50 ring-1 ring-brand-500';
+                  else if (r.accentColor === 'emerald') borderStyle = 'border-emerald-600 bg-emerald-50/50 ring-1 ring-emerald-500';
+                  else borderStyle = 'border-violet-600 bg-violet-50/50 ring-1 ring-violet-500';
                 }
 
                 return (
@@ -172,42 +184,42 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
                     key={r.id}
                     type="button"
                     onClick={() => handleRoleSelect(r.id)}
-                    className={`flex items-start space-x-4 rounded-lg border p-3.5 text-left transition-all duration-150 ${borderStyle}`}
+                    className={`flex items-start space-x-4 rounded-md border p-3.5 text-left transition-all duration-150 cursor-pointer ${borderStyle}`}
                   >
                     <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border ${
                       isSelected
                         ? r.accentColor === 'cyan'
-                          ? 'border-cyan-500/60 bg-cyan-900/40 text-cyan-300'
+                          ? 'border-brand-200 bg-brand-50 text-brand-600'
                           : r.accentColor === 'emerald'
-                          ? 'border-emerald-500/60 bg-emerald-900/40 text-emerald-300'
-                          : 'border-violet-500/60 bg-violet-900/40 text-violet-300'
-                        : 'border-slate-700 bg-slate-800/80 text-slate-400'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                          : 'border-violet-200 bg-violet-50 text-violet-600'
+                        : 'border-slate-200 bg-white text-slate-600'
                     }`}>
                       <IconComponent className="h-5 w-5" />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-100">{r.title}</span>
+                        <span className="text-sm font-semibold text-slate-900">{r.title}</span>
                         <span className={`font-mono text-[10px] uppercase px-2 py-0.5 rounded border ${
                           isSelected
                             ? r.accentColor === 'cyan'
-                              ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+                              ? 'bg-brand-50 text-brand-700 border-brand-200 font-semibold'
                               : r.accentColor === 'emerald'
-                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                              : 'bg-violet-500/10 text-violet-300 border-violet-500/30'
-                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold'
+                              : 'bg-violet-50 text-violet-700 border-violet-200 font-semibold'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
                         }`}>
                           {r.badge}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-400 font-medium">{r.subtitle}</div>
-                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400/90">{r.description}</p>
+                      <div className="text-xs text-slate-500 font-medium">{r.subtitle}</div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{r.description}</p>
                     </div>
 
                     {isSelected && (
                       <CheckCircle2 className={`h-5 w-5 shrink-0 ${
-                        r.accentColor === 'cyan' ? 'text-cyan-400' : r.accentColor === 'emerald' ? 'text-emerald-400' : 'text-violet-400'
+                        r.accentColor === 'cyan' ? 'text-brand-600' : r.accentColor === 'emerald' ? 'text-emerald-600' : 'text-violet-600'
                       }`} />
                     )}
                   </button>
@@ -215,11 +227,11 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
               })}
             </div>
 
-            <div className="mt-6 flex items-center justify-between pt-2 border-t border-slate-800/80">
+            <div className="mt-6 flex items-center justify-between pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => handleQuickEnter(selectedRole)}
-                className="text-[11px] text-slate-400 hover:text-cyan-300 font-mono transition flex items-center space-x-1"
+                className="text-[11px] text-slate-600 hover:text-brand-600 font-mono transition flex items-center space-x-1 font-semibold cursor-pointer"
               >
                 <span>⚡ Instant Entry ({ROLE_DEFINITIONS[selectedRole]?.title})</span>
               </button>
@@ -227,7 +239,7 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="flex items-center space-x-2 rounded-md bg-cyan-500 px-5 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 active:bg-cyan-600 shadow-[0_0_20px_rgba(34,211,238,0.3)]"
+                className="flex items-center space-x-2 rounded-md bg-brand-600 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-brand-500 active:bg-brand-700 cursor-pointer shadow-sm"
               >
                 <span>Proceed to Credentials</span>
                 <ArrowRight className="h-4 w-4" />
@@ -241,28 +253,28 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-slate-100">Authenticate Credentials</h3>
+                <h3 className="text-base font-semibold text-slate-900">Authenticate Credentials</h3>
                 {/* Active Role Chip */}
                 <div className="flex items-center space-x-2">
                   <span className={`inline-flex items-center space-x-1.5 rounded-full px-2.5 py-1 text-xs font-mono font-medium border ${
                     activeRoleDef.accentColor === 'cyan'
-                      ? 'border-cyan-500/40 bg-cyan-950/30 text-cyan-300'
+                      ? 'border-brand-200 bg-brand-50 text-brand-700'
                       : activeRoleDef.accentColor === 'emerald'
-                      ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
-                      : 'border-violet-500/40 bg-violet-950/30 text-violet-300'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-violet-200 bg-violet-50 text-violet-700'
                   }`}>
                     <span>{activeRoleDef.title}</span>
                   </span>
                   <button
                     type="button"
                     onClick={handlePrevStep}
-                    className="text-[11px] text-cyan-400 underline hover:text-cyan-300"
+                    className="text-[11px] text-brand-600 underline hover:text-brand-500 font-semibold"
                   >
                     Change
                   </button>
                 </div>
               </div>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-600">
                 Input organization authorization details. Client-side sandbox mock authentication is active.
               </p>
             </div>
@@ -270,11 +282,11 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
             <div className="space-y-3.5 pt-2">
               {/* Email */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Operator Identity / Email
                 </label>
                 <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                     <Mail className="h-4 w-4" />
                   </div>
                   <input
@@ -282,7 +294,7 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
                     value={credentials.email}
                     onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                     required
-                    className="w-full rounded-md border border-slate-700 bg-slate-900/90 py-2 pl-9 pr-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 font-mono"
+                    className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 font-mono"
                     placeholder="operator@organization.gov"
                   />
                 </div>
@@ -290,11 +302,11 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
 
               {/* Password */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Security Token / Passphrase
                 </label>
                 <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                     <Lock className="h-4 w-4" />
                   </div>
                   <input
@@ -302,7 +314,7 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
                     value={credentials.password}
                     onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                     required
-                    className="w-full rounded-md border border-slate-700 bg-slate-900/90 py-2 pl-9 pr-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 font-mono"
+                    className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 font-mono"
                     placeholder="Enter security token"
                   />
                 </div>
@@ -310,11 +322,11 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
 
               {/* Agency / IMO Identifier */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Agency Code / IMO Fleet Identifier
                 </label>
                 <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                     <Building2 className="h-4 w-4" />
                   </div>
                   <input
@@ -322,18 +334,18 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
                     value={credentials.agency}
                     onChange={(e) => setCredentials({ ...credentials, agency: e.target.value })}
                     required
-                    className="w-full rounded-md border border-slate-700 bg-slate-900/90 py-2 pl-9 pr-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 font-mono"
+                    className="w-full rounded-md border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 font-mono"
                     placeholder="e.g. IT-CG-FORENSIC-04 or IMO-918234"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-between pt-3 border-t border-slate-800">
+            <div className="mt-6 flex items-center justify-between pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="flex items-center space-x-1.5 rounded-md px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition"
+                className="flex items-center space-x-1.5 rounded-md px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 transition cursor-pointer"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Back</span>
@@ -342,7 +354,7 @@ export const AuthModal = ({ isOpen = true, onClose }) => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center space-x-2 rounded-md bg-cyan-500 px-5 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:opacity-60 shadow-[0_0_20px_rgba(34,211,238,0.3)]"
+                className="flex items-center space-x-2 rounded-md bg-brand-600 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-brand-500 active:bg-brand-700 disabled:opacity-60 cursor-pointer shadow-sm"
               >
                 <KeyRound className="h-4 w-4" />
                 <span>{isSubmitting ? 'Authenticating...' : 'Authenticate & Enter Portal'}</span>
