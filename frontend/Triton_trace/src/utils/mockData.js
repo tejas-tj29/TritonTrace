@@ -20,14 +20,18 @@ export const mockIncident = {
     wind_direction_deg: 315,
     current_speed_ms: 0.24,
     current_direction_deg: 120,
-    radar_backscatter_db: -22.4
+    radar_backscatter_db: -22.4,
   },
   hindcast_origin: {
     centroid: { lat: 32.35, lon: 32.92 },
     release_window: "2026-09-22T00:30:00Z to 2026-09-22T01:30:00Z",
-    uncertainty_radius_km: 1.8
+    uncertainty_radius_km: 1.8,
   },
-  impact_risk: { mpa_pelagos: "HIGH", coastline_landfall_hrs: 18.5, fisheries: "LOW" }
+  impact_risk: {
+    mpa_pelagos: "HIGH",
+    coastline_landfall_hrs: 18.5,
+    fisheries: "LOW",
+  },
 };
 
 export const mockAISVessels = [
@@ -43,7 +47,7 @@ export const mockAISVessels = [
     sog_anomaly_flag: true,
     ais_gap_detected: true, // Dark shipping behavior
     threat_score: 0.942,
-    verdict: "HIGH_CORRELATION"
+    verdict: "HIGH_CORRELATION",
   },
   {
     mmsi: "419000104",
@@ -56,9 +60,9 @@ export const mockAISVessels = [
     cog_degrees: 52.0,
     sog_anomaly_flag: false,
     ais_gap_detected: false,
-    threat_score: 0.310,
-    verdict: "LOW_CORRELATION"
-  }
+    threat_score: 0.31,
+    verdict: "LOW_CORRELATION",
+  },
 ];
 
 export const mockHistoricalIncidents = [
@@ -79,10 +83,10 @@ export const mockHistoricalIncidents = [
       [33.15, 32.51],
       [33.25, 32.48],
       [33.28, 32.45],
-      [33.20, 32.47],
-      [33.08, 32.50],
-      [33.05, 32.52]
-    ]
+      [33.2, 32.47],
+      [33.08, 32.5],
+      [33.05, 32.52],
+    ],
   },
   {
     incident_id: "Med-Spill-016",
@@ -101,8 +105,8 @@ export const mockHistoricalIncidents = [
       [26.52, 34.21],
       [26.54, 34.18],
       [26.49, 34.17],
-      [26.48, 34.22]
-    ]
+      [26.48, 34.22],
+    ],
   },
   {
     incident_id: "Med-Spill-015",
@@ -121,8 +125,8 @@ export const mockHistoricalIncidents = [
       [28.42, 35.81],
       [28.41, 35.78],
       [28.37, 35.79],
-      [28.38, 35.82]
-    ]
+      [28.38, 35.82],
+    ],
   },
   {
     incident_id: "RPT-20260920-0041",
@@ -141,7 +145,7 @@ export const mockHistoricalIncidents = [
       [34.52, 33.81],
       [34.51, 33.78],
       [34.47, 33.79],
-      [34.48, 33.82]
-    ]
-  }
+      [34.48, 33.82],
+    ],
+  },
 ];

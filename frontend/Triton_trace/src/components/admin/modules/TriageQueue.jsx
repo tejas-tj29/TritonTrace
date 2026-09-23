@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { reportService } from "../../../services/reportService";
+import React, { useState, useEffect } from "react";
 import { useIncident } from "../../../context/IncidentContext";
+import { mockHistoricalIncidents } from "../../../utils/mockData"; // 👈 1. Import the mock data
 import { DossierModal } from "./DossierModal";
 import {
   ShieldCheck,
@@ -30,31 +30,59 @@ export const TriageQueue = () => {
   const [timeOffset, setTimeOffset] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Load and refresh reports logic...
+  // 👈 2. Map the mock data directly into the component's state
   const loadReports = () => {
-    // Assuming reportService returns an array of reports. For UI testing without a backend, wrap in a try/catch or dummy data.
-    try {
-      const data = reportService
-        .getReports()
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setReports(data);
-    } catch (e) {
-      setReports([
-        {
-          id: "RPT-001",
-          createdAt: new Date().toISOString(),
-          status: "UNDER_REVIEW",
-          lat: 31.85,
-          lon: 28.25,
-          spillType: "Suspected Oil",
-        },
-      ]);
-    }
+    const formattedReports = mockHistoricalIncidents.map((inc) => ({
+      id: inc.incident_id,
+      createdAt: inc.detection_timestamp,
+      // Map the lowercase status to the uppercase UI badges
+      status:
+        inc.status === "under_investigation"
+          ? "UNDER_REVIEW"
+          : inc.status.toUpperCase(),
+      lat: inc.coordinates.lat,
+      lon: inc.coordinates.lon,
+      spillType:
+        inc.source_type === "satellite_detected"
+          ? "SAR Detection"
+          : "Field Report",
+    }));
+
+    // Sort so the newest incidents appear at the top
+    setReports(
+      formattedReports.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      ),
+    );
   };
 
   useEffect(() => {
     loadReports();
   }, []);
+
+  // ... (Keep your existing useEffect for the hindcast player)
+  useEffect(() => {
+    let interval;
+    if (isPlaying && activeAnalysisMode === "attribution") {
+      interval = setInterval(() => {
+        setTimeOffset((prev) => {
+          const next = prev - 1;
+          if (next < -24) {
+            setIsPlaying(false);
+            return -24;
+          }
+          return next;
+        });
+      }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, activeAnalysisMode]);
+
+  useEffect(() => {
+    if (activeAnalysisMode === "attribution") {
+      updateHindcastTimeline(timeOffset);
+    }
+  }, [timeOffset, updateHindcastTimeline, activeAnalysisMode]);
 
   const handleCardClick = (report) => {
     if (activeIncident === report.id) {

@@ -1,45 +1,62 @@
-import React from 'react';
-import { useIncident } from '../../../context/IncidentContext';
-import { mockHistoricalIncidents } from '../../../utils/mockData';
-import { Target } from 'lucide-react';
+import React from "react";
+import { useIncident } from "../../../context/IncidentContext";
+import { mockHistoricalIncidents } from "../../../utils/mockData";
 
 export const HistoricalFeed = () => {
   const { activeIncident, setActiveIncident } = useIncident();
 
   return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-xs font-bold text-slate-400 tracking-widest uppercase">Historical Incidents</h2>
-      
+    <div className="flex flex-col gap-4 font-sans">
+      <h2 className="text-xs font-bold text-slate-500 tracking-widest uppercase">
+        Historical Incidents
+      </h2>
+
       <div className="flex flex-col gap-3">
-        {mockHistoricalIncidents.map(inc => (
+        {mockHistoricalIncidents.map((inc) => (
           <button
             key={inc.id}
             onClick={() => setActiveIncident(inc.id)}
-            className={`p-3 rounded-lg border text-left flex flex-col gap-2 transition-colors ${
-              activeIncident === inc.id 
-                ? 'bg-slate-800 border-cyan-500/50 ring-1 ring-cyan-500/20' 
-                : 'bg-slate-900 border-slate-700 hover:border-slate-600'
+            className={`p-3 rounded-md border text-left flex flex-col gap-2 transition-all shadow-sm ${
+              activeIncident === inc.id
+                ? "bg-brand-50 border-brand-400 ring-1 ring-brand-400/20"
+                : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50"
             }`}
           >
             <div className="flex justify-between items-center w-full">
-              <span className="font-mono text-xs text-slate-200">{inc.id}</span>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                inc.status === 'ACTIVE' ? 'bg-rose-500/20 text-rose-400' :
-                inc.status === 'MONITORING' ? 'bg-amber-500/20 text-amber-400' :
-                'bg-emerald-500/20 text-emerald-400'
-              }`}>
+              <span
+                className={`font-mono text-xs font-bold ${activeIncident === inc.id ? "text-brand-700" : "text-slate-800"}`}
+              >
+                {inc.id}
+              </span>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                  inc.status === "ACTIVE"
+                    ? "bg-rose-50 text-rose-700 border-rose-200"
+                    : inc.status === "MONITORING"
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                }`}
+              >
                 {inc.status}
               </span>
             </div>
-            
+
             <div className="flex justify-between items-end w-full">
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-500">DETECTED</span>
-                <span className="text-xs text-slate-300">{new Date(inc.timestamp).toLocaleDateString()}</span>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wider">
+                  DETECTED
+                </span>
+                <span className="text-xs font-medium text-slate-700">
+                  {new Date(inc.timestamp).toLocaleDateString()}
+                </span>
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] text-slate-500">EST AREA</span>
-                <span className="text-xs font-mono text-slate-300">{inc.area} km²</span>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wider">
+                  EST AREA
+                </span>
+                <span className="text-xs font-mono font-bold text-slate-700">
+                  {inc.area} km²
+                </span>
               </div>
             </div>
           </button>
