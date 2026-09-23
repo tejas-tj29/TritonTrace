@@ -1,5 +1,5 @@
 import { PanelLeftClose } from "lucide-react";
-// import { TriageQueue } from './modules/TriageQueue'; // Uncomment when you build this
+import { TriageQueue } from "./modules/TriageQueue";
 
 export const InvestigatorLeft = ({ onCollapse }) => {
   return (
@@ -35,7 +35,7 @@ export const InvestigatorLeft = ({ onCollapse }) => {
       <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
         {/* <TriageQueue /> */}
         <div className="p-4 text-sm text-slate-500 border border-dashed border-slate-300 rounded bg-slate-50 text-center">
-          Triage Queue Module Pending...
+          <TriageQueue />
         </div>
       </div>
     </aside>

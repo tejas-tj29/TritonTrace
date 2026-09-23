@@ -1,0 +1,130 @@
+import { createContext, useContext, useState, useCallback } from "react";
+
+const IncidentContext = createContext();
+
+// Helper function to generate the PRD-mandated 1000 particle swarm
+// Centered around the suspected discharge origin from your dossier (Lon: 28.25, Lat: 31.85)
+const generateParticleSwarm = (centerLon, centerLat, count) => {
+  const particles = [];
+  for (let i = 0; i < count; i++) {
+    // Generate a random Gaussian-like distribution (approx 2km radius spread)
+    const u = Math.random();
+    const v = Math.random();
+    const radius = 0.02 * Math.sqrt(u); // ~2km in decimal degrees
+    const theta = 2 * Math.PI * v;
+
+    particles.push({
+      id: `p_${i}`,
+      lon: centerLon + radius * Math.cos(theta),
+      lat: centerLat + radius * Math.sin(theta),
+      age: 0,
+    });
+  }
+  return particles;
+};
+
+export const IncidentProvider = ({ children }) => {
+  // 1. Global Incident State
+  const [activeIncident, setActiveIncident] = useState(null);
+  const [panToCoordinate, setPanToCoordinate] = useState(null); // {lat, lon}
+
+  // 2. Normal User Manual Mapping State
+  // interactionMode: 'none' | 'pick_coordinate' | 'draw_polygon'
+  const [interactionMode, setInteractionMode] = useState("none");
+  const [pickedCoordinate, setPickedCoordinate] = useState(null);
+  const [drawnPolygon, setDrawnPolygon] = useState([]); // array of [lon, lat]
+  const [cursorCoordinate, setCursorCoordinate] = useState(null); // [lon, lat]
+  const [isPolygonClosed, setIsPolygonClosed] = useState(false);
+
+  // 3. Admin / Investigator Analytical State
+  const [activeAnalysisMode, setActiveAnalysisMode] = useState("none"); // 'none' | 'attribution' | 'forward_track'
+  const [correlationMarker, setCorrelationMarker] = useState(null); // [lon, lat]
+
+  // Initialize the 1000-particle swarm exactly once on load
+  const [baseHindcastParticles] = useState(() =>
+    generateParticleSwarm(28.25, 31.85, 1000),
+  );
+  const [hindcastData, setHindcastData] = useState(baseHindcastParticles);
+
+  // 4. Physics & Simulation Methods
+  const updateHindcastTimeline = useCallback(
+    (offsetHours) => {
+      // PRD Section 17: Lagrangian Drift = Current Vector + (Wind Vector * Leeway Factor)
+      // offsetHours is negative (e.g., 0 to -12).
+      // If the spill drifted Southeast, a backward hindcast moves the particles Northwest.
+      const driftFactorX = -0.015; // longitude backward drift per hour
+      const driftFactorY = 0.012; // latitude backward drift per hour
+
+      // Simulate windage dispersal (particles spread out slightly the further back in time we go)
+      const dispersalSpread = Math.abs(offsetHours) * 0.0005;
+
+      setHindcastData(
+        baseHindcastParticles.map((p) => {
+          // Apply deterministic random spread based on the particle's ID so the cloud expands naturally
+          const uniqueSpreadX =
+            Math.sin(parseInt(p.id.split("_")[1])) * dispersalSpread;
+          const uniqueSpreadY =
+            Math.cos(parseInt(p.id.split("_")[1])) * dispersalSpread;
+
+          return {
+            ...p,
+            lon: p.lon + offsetHours * driftFactorX + uniqueSpreadX,
+            lat: p.lat + offsetHours * driftFactorY + uniqueSpreadY,
+            age: offsetHours,
+          };
+        }),
+      );
+    },
+    [baseHindcastParticles],
+  );
+
+  // Custom setter for drawn polygon to easily add vertices
+  const addPolygonVertex = useCallback((coord) => {
+    setDrawnPolygon((prev) => [...prev, coord]);
+  }, []);
+
+  const clearPolygon = useCallback(() => {
+    setDrawnPolygon([]);
+    setCursorCoordinate(null);
+    setIsPolygonClosed(false);
+  }, []);
+
+  const value = {
+    activeIncident,
+    setActiveIncident,
+    interactionMode,
+    setInteractionMode,
+    pickedCoordinate,
+    setPickedCoordinate,
+    drawnPolygon,
+    setDrawnPolygon,
+    addPolygonVertex,
+    clearPolygon,
+    cursorCoordinate,
+    setCursorCoordinate,
+    isPolygonClosed,
+    setIsPolygonClosed,
+    panToCoordinate,
+    setPanToCoordinate,
+    hindcastData,
+    updateHindcastTimeline,
+    correlationMarker,
+    setCorrelationMarker,
+    activeAnalysisMode,
+    setActiveAnalysisMode,
+  };
+
+  return (
+    <IncidentContext.Provider value={value}>
+      {children}
+    </IncidentContext.Provider>
+  );
+};
+
+export const useIncident = () => {
+  const context = useContext(IncidentContext);
+  if (context === undefined) {
+    throw new Error("useIncident must be used within an IncidentProvider");
+  }
+  return context;
+};
