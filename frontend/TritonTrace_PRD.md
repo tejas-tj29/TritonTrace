@@ -92,40 +92,25 @@ There must be no decorative dead buttons, fake tabs, static sliders pretending t
 
 ---
 
-# 3. Visual Design System
-
 ## 3.1 Overall visual direction
 
-The interface should be dark, precise, dense and restrained.
+The interface must be a clean, flat, high-contrast scientific white theme.
 
 Use:
 
-- thin 1px borders
-- compact panels
-- small corner radii, primarily `rounded-md`
-- subtle shadows
-- quiet separators
-- operational labels
-- compact status badges
-- telemetry readouts
-- monospace numerical values
-- map overlays instead of unnecessary cards
-- subtle motion
+- plain white (`bg-white`) for all panels, sidebars, and cards
+- very light gray (`bg-slate-50`) for the app background/canvas
+- crisp 1px borders (`border-slate-200`)
+- dark, highly legible text (`text-slate-900` and `text-slate-600`)
+- flat design (no gradients, no glassmorphism, no heavy blurs)
+- subtle, tight shadows (`shadow-sm` or `shadow-md` only for floating modals)
 
-Avoid excessive:
+Avoid entirely:
 
-- rounded cards
-- gradients
-- glow
-- blur
-- glassmorphism
-- giant headings
-- decorative illustrations
-- animated blobs
-- empty whitespace
-- neon accents used for decoration
-
-Glassmorphism may be used selectively for the authentication gateway and floating map controls, but the operational console should primarily use opaque/dark surfaces.
+- dark mode backgrounds for the UI shell (keep the Mapbox map dark, but the UI must be white)
+- gradients of any kind
+- glassmorphism or translucent blurred panels
+- glowing buttons
 
 ## 3.2 Color semantics
 
@@ -133,22 +118,20 @@ Base palette:
 
 | Token | Meaning |
 | --- | --- |
-| `slate-950` | Global background |
-| `slate-900` | Primary operational panels |
-| `slate-800` | Elevated surfaces |
-| `slate-700` | Borders/dividers |
-| `slate-100` | Primary text |
-| `slate-400` | Secondary text |
+| `bg-slate-50` | Global background canvas |
+| `bg-white` | Primary operational panels, sidebars, modals |
+| `border-slate-200` | Borders and dividers |
+| `text-slate-900` | Primary headings and values |
+| `text-slate-600` | Secondary text and labels |
 
-Semantic accents:
+Semantic accents (Flat, solid colors):
 
 | Accent | Meaning |
 | --- | --- |
-| `cyan-400` | SAR, ocean, slick geometry, active geospatial analysis |
-| `emerald-400` | Normal/resolved/safe/consistent |
-| `amber-400` | Warning, uncertainty, pending action |
-| `rose-500` | Anomaly, threat, high-risk state |
-| `violet-400` | Analytical computation/model-processing state |
+| `cyan-600` | Primary brand color, CTA buttons, active states |
+| `emerald-600` | Normal/resolved/safe |
+| `amber-500` | Warning, pending |
+| `rose-600` | Anomaly, threat, high-risk state |
 
 **Rule:** accent colors represent semantic state. Do not use every accent color simultaneously merely to make the UI look colorful.
 
