@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { FallbackLeaflet } from './FallbackLeaflet';
-import { useIncident } from '../../context/IncidentContext';
+import { useState, useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { FallbackLeaflet } from "./FallbackLeaflet";
+import { useIncident } from "../../context/IncidentContext";
+import geofencesData from "../../utils/regional_alert_geofences.json";
 
 /**
  * MapCanvas Component
@@ -11,13 +12,12 @@ import { useIncident } from '../../context/IncidentContext';
  */
 export const MapCanvas = ({
   interactive = true,
-  className = '',
+  className = "",
   onEngineResolved,
-  layers = []
+  layers = [],
 }) => {
-  // Read environment configuration with explicit numeric casting per PRD 6.2
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-  const defaultLat = Number(import.meta.env.VITE_DEFAULT_LAT) || 31.350;
+  const defaultLat = Number(import.meta.env.VITE_DEFAULT_LAT) || 31.35;
   const defaultLon = Number(import.meta.env.VITE_DEFAULT_LON) || 31.685;
   const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM) || 5.5;
 
@@ -26,149 +26,240 @@ export const MapCanvas = ({
   const initialViewState = {
     longitude: defaultLon,
     latitude: defaultLat,
-    zoom: defaultZoom
+    zoom: defaultZoom,
   };
 
-  // Target AOI Bounding Box: Longitude 18.37°E to 45.0°E, Latitude 25.0°N to 37.7°N
   const aoiMaxBounds = [
-    [18.37, 25.0], // Southwest [lng, lat]
-    [45.0, 37.7]   // Northeast [lng, lat]
+    [18.37, 25.0],
+    [45.0, 37.7],
   ];
 
-  // Check token and WebGL support at initial state to avoid setState inside effect
   const [useFallback, setUseFallback] = useState(() => {
-    if (!token || token.trim() === '') return true;
+    if (!token || token.trim() === "") return true;
     if (!mapboxgl.supported || !mapboxgl.supported()) return true;
     return false;
   });
+
   const containerRef = useRef(null);
   const mapRef = useRef(null);
+  const markerRef = useRef(null);
 
   useEffect(() => {
-    // If fallback is already active, notify engine resolution and return
     if (useFallback) {
-      if (onEngineResolved) onEngineResolved('leaflet');
+      if (onEngineResolved) onEngineResolved("leaflet");
       return;
     }
 
     try {
       mapboxgl.accessToken = token;
 
-      // Mapbox GL coordinate format is [Longitude, Latitude]
       const map = new mapboxgl.Map({
         container: containerRef.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
+        style: "mapbox://styles/mapbox/dark-v11",
         center: [initialViewState.longitude, initialViewState.latitude],
         zoom: initialViewState.zoom,
         maxBounds: aoiMaxBounds,
         interactive: interactive,
-        attributionControl: false
+        attributionControl: false,
       });
 
-      // Catch asynchronous token authorization, style loading, or WebGL tile errors
-      map.on('error', (e) => {
-        // Prevent console pollution and gracefully fallback
-        if (e && e.error && (e.error.status === 401 || e.error.status === 403 || e.error.message?.includes('token'))) {
+      map.on("error", (e) => {
+        if (
+          e &&
+          e.error &&
+          (e.error.status === 401 ||
+            e.error.status === 403 ||
+            e.error.message?.includes("token"))
+        ) {
           setUseFallback(true);
-          if (onEngineResolved) onEngineResolved('leaflet');
+          if (onEngineResolved) onEngineResolved("leaflet");
         }
       });
 
-      map.on('load', () => {
-        if (onEngineResolved) onEngineResolved('mapbox');
+      map.on("load", () => {
+        if (onEngineResolved) onEngineResolved("mapbox");
 
         try {
-          // 1. SAR SLICK (Using existing coordinates)
-          map.addSource('sar_slick-source', {
-            type: 'geojson',
+          // 1. SAR SLICK
+          map.addSource("sar_slick-source", {
+            type: "geojson",
             data: {
-              type: 'Feature',
+              type: "Feature",
               geometry: {
-                type: 'Polygon',
-                coordinates: [[
-                  [33.05, 32.52], [33.15, 32.51], [33.25, 32.48],
-                  [33.28, 32.45], [33.20, 32.47], [33.08, 32.50], [33.05, 32.52]
-                ]]
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [33.05, 32.52],
+                    [33.15, 32.51],
+                    [33.25, 32.48],
+                    [33.28, 32.45],
+                    [33.2, 32.47],
+                    [33.08, 32.5],
+                    [33.05, 32.52],
+                  ],
+                ],
               },
-              properties: { id: 'Med-Spill-017', area: 14.6 }
-            }
+              properties: { id: "Med-Spill-017", area: 14.6 },
+            },
           });
           map.addLayer({
-            id: 'sar_slick-fill',
-            type: 'fill',
-            source: 'sar_slick-source',
-            layout: { visibility: 'none' }, // will be set by useEffect
-            paint: { 'fill-color': '#22d3ee', 'fill-opacity': 0.3 }
+            id: "sar_slick-fill",
+            type: "fill",
+            source: "sar_slick-source",
+            layout: { visibility: "none" },
+            paint: { "fill-color": "#22d3ee", "fill-opacity": 0.3 },
           });
           map.addLayer({
-            id: 'sar_slick-outline',
-            type: 'line',
-            source: 'sar_slick-source',
-            layout: { visibility: 'none' },
-            paint: { 'line-color': '#22d3ee', 'line-width': 2, 'line-dasharray': [2, 2] }
+            id: "sar_slick-outline",
+            type: "line",
+            source: "sar_slick-source",
+            layout: { visibility: "none" },
+            paint: {
+              "line-color": "#22d3ee",
+              "line-width": 2,
+              "line-dasharray": [2, 2],
+            },
           });
 
           // 2. HINDCAST PARTICLES
-          map.addSource('hindcast-source', {
-            type: 'geojson',
+          map.addSource("hindcast-source", {
+            type: "geojson",
             data: {
-              type: 'FeatureCollection',
+              type: "FeatureCollection",
               features: [
-                { type: 'Feature', geometry: { type: 'Point', coordinates: [33.1, 32.5] } },
-                { type: 'Feature', geometry: { type: 'Point', coordinates: [33.12, 32.51] } },
-                { type: 'Feature', geometry: { type: 'Point', coordinates: [33.15, 32.49] } },
-                { type: 'Feature', geometry: { type: 'Point', coordinates: [33.08, 32.48] } },
-                { type: 'Feature', geometry: { type: 'Point', coordinates: [33.2, 32.46] } }
-              ]
-            }
+                {
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: [33.1, 32.5] },
+                },
+                {
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: [33.12, 32.51] },
+                },
+                {
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: [33.15, 32.49] },
+                },
+                {
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: [33.08, 32.48] },
+                },
+                {
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: [33.2, 32.46] },
+                },
+              ],
+            },
           });
           map.addLayer({
-            id: 'hindcast-points',
-            type: 'circle',
-            source: 'hindcast-source',
-            layout: { visibility: 'none' },
-            paint: { 'circle-color': '#f43f5e', 'circle-radius': 4 }
+            id: "hindcast-points",
+            type: "circle",
+            source: "hindcast-source",
+            layout: { visibility: "none" },
+            paint: { "circle-color": "#f43f5e", "circle-radius": 4 },
           });
 
           // 3. AIS TRACKS
-          map.addSource('ais_tracks-source', {
-            type: 'geojson',
+          map.addSource("ais_tracks-source", {
+            type: "geojson",
             data: {
-              type: 'Feature',
-              geometry: { type: 'LineString', coordinates: [[32.5, 32.0], [32.8, 32.2], [33.1, 32.5]] }
-            }
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: [
+                  [32.5, 32.0],
+                  [32.8, 32.2],
+                  [33.1, 32.5],
+                ],
+              },
+            },
           });
           map.addLayer({
-            id: 'ais_tracks-line',
-            type: 'line',
-            source: 'ais_tracks-source',
-            layout: { visibility: 'none' },
-            paint: { 'line-color': '#f59e0b', 'line-width': 3 }
+            id: "ais_tracks-line",
+            type: "line",
+            source: "ais_tracks-source",
+            layout: { visibility: "none" },
+            paint: { "line-color": "#f59e0b", "line-width": 3 },
           });
 
-          // 4. GEOFENCES
-          map.addSource('geofences-source', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: { type: 'Polygon', coordinates: [[[31.0, 31.0], [35.0, 31.0], [35.0, 34.0], [31.0, 34.0], [31.0, 31.0]]] }
-            }
-          });
-          map.addLayer({
-            id: 'geofences-fill',
-            type: 'fill',
-            source: 'geofences-source',
-            layout: { visibility: 'none' },
-            paint: { 'fill-color': '#10b981', 'fill-opacity': 0.1 }
-          });
-          map.addLayer({
-            id: 'geofences-line',
-            type: 'line',
-            source: 'geofences-source',
-            layout: { visibility: 'none' },
-            paint: { 'line-color': '#10b981', 'line-width': 2, 'line-dasharray': [4, 4] }
+          // 4. GEOFENCES (Outer Boundaries)
+          map.addSource("geofences-source", {
+            type: "geojson",
+            data: geofencesData,
           });
 
+          map.addLayer({
+            id: "geofences-fill",
+            type: "fill",
+            source: "geofences-source",
+            layout: { visibility: "none" },
+            paint: {
+              "fill-color": ["get", "color"],
+              "fill-opacity": 0.15,
+            },
+          });
+
+          map.addLayer({
+            id: "geofences-line-watch",
+            type: "line",
+            source: "geofences-source",
+            layout: { visibility: "none" },
+            filter: ["==", ["get", "zone_level"], "Watch Zone"],
+            paint: {
+              "line-color": ["get", "color"],
+              "line-width": 1.5,
+              "line-dasharray": [4, 4],
+              "line-opacity": 0.85,
+            },
+          });
+
+          map.addLayer({
+            id: "geofences-line-critical",
+            type: "line",
+            source: "geofences-source",
+            layout: { visibility: "none" },
+            filter: ["==", ["get", "zone_level"], "Critical Strike Zone"],
+            paint: {
+              "line-color": ["get", "color"],
+              "line-width": 2,
+              "line-opacity": 0.85,
+            },
+          });
+
+          // 5. GEOFENCE HOTSPOTS (Center Circles)
+          const geofencesCentersData = {
+            type: "FeatureCollection",
+            features: geofencesData.features.map((f) => ({
+              type: "Feature",
+              geometry: {
+                type: "Point",
+                // Extract first coordinate from polygon ring to act as a center point hotspot
+                coordinates: [
+                  f.geometry.coordinates[0][0][0],
+                  f.geometry.coordinates[0][0][1],
+                ],
+              },
+              properties: { color: f.properties.color },
+            })),
+          };
+
+          map.addSource("geofences-centers-source", {
+            type: "geojson",
+            data: geofencesCentersData,
+          });
+
+          map.addLayer({
+            id: "geofences-centers-layer",
+            type: "circle",
+            source: "geofences-centers-source",
+            layout: { visibility: "none" },
+            paint: {
+              "circle-color": ["get", "color"],
+              "circle-radius": 4,
+              "circle-opacity": 0.9,
+              "circle-stroke-width": 1,
+              "circle-stroke-color": "#020617", // Slate 950 border for high contrast
+            },
+          });
         } catch {
           // Source addition handled cleanly
         }
@@ -176,10 +267,10 @@ export const MapCanvas = ({
 
       mapRef.current = map;
     } catch {
-      // Catch synchronous construction errors (e.g. invalid token string format)
+      // Catch synchronous construction errors
       setTimeout(() => {
         setUseFallback(true);
-        if (onEngineResolved) onEngineResolved('leaflet');
+        if (onEngineResolved) onEngineResolved("leaflet");
       }, 0);
     }
 
@@ -189,7 +280,7 @@ export const MapCanvas = ({
         mapRef.current = null;
       }
     };
-  }, [token, defaultLat, defaultLon, defaultZoom, interactive, useFallback, onEngineResolved]);
+  }, [token, defaultLat, defaultLon, defaultZoom, interactive, useFallback]);
 
   // Sync layers visibility from MapEngine
   useEffect(() => {
@@ -199,27 +290,37 @@ export const MapCanvas = ({
     const updateVisibility = () => {
       if (!map.isStyleLoaded()) return;
 
-      layers.forEach(layer => {
-        const visibility = layer.active ? 'visible' : 'none';
-        if (layer.id === 'sar_slick') {
-          if (map.getLayer('sar_slick-fill')) map.setLayoutProperty('sar_slick-fill', 'visibility', visibility);
-          if (map.getLayer('sar_slick-outline')) map.setLayoutProperty('sar_slick-outline', 'visibility', visibility);
-        } else if (layer.id === 'hindcast') {
-          if (map.getLayer('hindcast-points')) map.setLayoutProperty('hindcast-points', 'visibility', visibility);
-        } else if (layer.id === 'ais_tracks') {
-          if (map.getLayer('ais_tracks-line')) map.setLayoutProperty('ais_tracks-line', 'visibility', visibility);
-        } else if (layer.id === 'geofences') {
-          if (map.getLayer('geofences-fill')) map.setLayoutProperty('geofences-fill', 'visibility', visibility);
-          if (map.getLayer('geofences-line')) map.setLayoutProperty('geofences-line', 'visibility', visibility);
+      layers.forEach((layer) => {
+        const visibility = layer.active ? "visible" : "none";
+
+        const toggleLayer = (layerId) => {
+          if (map.getLayer(layerId)) {
+            map.setLayoutProperty(layerId, "visibility", visibility);
+          }
+        };
+
+        if (layer.id === "sar_slick") {
+          toggleLayer("sar_slick-fill");
+          toggleLayer("sar_slick-outline");
+        } else if (layer.id === "hindcast") {
+          toggleLayer("hindcast-points");
+        } else if (layer.id === "ais_tracks") {
+          toggleLayer("ais_tracks-line");
+        } else if (layer.id === "geofences") {
+          // Toggle all geofence sub-layers including the new hotspot centers
+          toggleLayer("geofences-fill");
+          toggleLayer("geofences-line-watch");
+          toggleLayer("geofences-line-critical");
+          toggleLayer("geofences-centers-layer");
         }
       });
     };
 
     updateVisibility();
-    map.on('styledata', updateVisibility);
-    
+    map.on("styledata", updateVisibility);
+
     return () => {
-      map.off('styledata', updateVisibility);
+      map.off("styledata", updateVisibility);
     };
   }, [layers]);
 
@@ -233,7 +334,27 @@ export const MapCanvas = ({
     }
   }, [panToCoordinate]);
 
-  // If fallback is triggered, mount FallbackLeaflet silently
+  // Handle correlationMarker for Mapbox engine
+  useEffect(() => {
+    if (!mapRef.current || !correlationMarker?.lat || !correlationMarker?.lon)
+      return;
+
+    if (markerRef.current) {
+      markerRef.current.remove();
+    }
+
+    markerRef.current = new mapboxgl.Marker({ color: "#f43f5e" })
+      .setLngLat([correlationMarker.lon, correlationMarker.lat])
+      .addTo(mapRef.current);
+
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
+    };
+  }, [correlationMarker]);
+
   if (useFallback) {
     return (
       <FallbackLeaflet
@@ -243,12 +364,15 @@ export const MapCanvas = ({
         className={className}
         panToCoordinate={panToCoordinate}
         correlationMarker={correlationMarker}
+        layers={layers}
       />
     );
   }
 
   return (
-    <div className={`relative h-full w-full select-none overflow-hidden bg-slate-950 ${className}`}>
+    <div
+      className={`relative h-full w-full select-none overflow-hidden bg-slate-950 ${className}`}
+    >
       <div ref={containerRef} className="h-full w-full" />
       {/* Mapbox active engine badge */}
       <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center space-x-1.5 rounded border border-slate-800 bg-slate-950/85 px-2.5 py-1 font-mono text-[10px] text-slate-400 backdrop-blur-md">
