@@ -36,6 +36,9 @@ export const MapCanvas = ({
     setCursorCoordinate,
     isPolygonClosed,
     setIsPolygonClosed,
+    activeIncident,
+    incidents,
+    spillDatabase,
   } = useIncident();
 
   const initialViewState = {
@@ -80,6 +83,39 @@ export const MapCanvas = ({
       }))
     };
   }, [commercialFleet]);
+
+  const sarSlicksGeoJSON = useMemo(() => {
+    if (!incidents) return null;
+    return {
+      type: 'FeatureCollection',
+      features: incidents.filter(i => i.polygon).map(inc => ({
+        type: 'Feature',
+        properties: { id: inc.id },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [inc.polygon] // Array of arrays for Polygons
+        }
+      }))
+    };
+  }, [incidents]);
+
+  const hindcastGeoJSON = useMemo(() => {
+    // Match the active incident ID (e.g., "ow-0008") to the image_filename in the JSON
+    const activeSpillData = spillDatabase?.spills?.find(s => 
+      activeIncident && s.image_filename.includes(activeIncident.id)
+    );
+    
+    if (!activeSpillData || !activeSpillData.parcels) return null;
+    
+    return {
+      type: 'FeatureCollection',
+      features: activeSpillData.parcels.map(p => ({
+        type: 'Feature',
+        properties: { mass: p.mass_kg, confidence: p.confidence },
+        geometry: { type: 'Point', coordinates: [p.lon, p.lat] }
+      }))
+    };
+  }, [spillDatabase, activeIncident]);
 
   // Target AOI Bounding Box: Longitude 18.37°E to 45.0°E, Latitude 25.0°N to 37.7°N
   const aoiMaxBounds = [
@@ -142,34 +178,17 @@ export const MapCanvas = ({
         if (onEngineResolved) onEngineResolved("mapbox");
 
         try {
-          // 1. SAR SLICK (Using existing coordinates)
+          // 1. SAR SLICK (Using dynamic incidents)
           map.addSource("sar_slick-source", {
             type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [
-                  [
-                    [33.05, 32.52],
-                    [33.15, 32.51],
-                    [33.25, 32.48],
-                    [33.28, 32.45],
-                    [33.2, 32.47],
-                    [33.08, 32.5],
-                    [33.05, 32.52],
-                  ],
-                ],
-              },
-              properties: { id: "Med-Spill-017", area: 14.6 },
-            },
+            data: sarSlicksGeoJSON || { type: 'FeatureCollection', features: [] }
           });
           map.addLayer({
             id: "sar_slick-fill",
             type: "fill",
             source: "sar_slick-source",
-            layout: { visibility: "none" }, // will be set by useEffect
-            paint: { "fill-color": "#22d3ee", "fill-opacity": 0.3 },
+            layout: { visibility: "none" },
+            paint: { "fill-color": "#06b6d4", "fill-opacity": 0.2 },
           });
           map.addLayer({
             id: "sar_slick-outline",
@@ -186,38 +205,28 @@ export const MapCanvas = ({
           // 2. HINDCAST PARTICLES
           map.addSource("hindcast-source", {
             type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: [
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.1, 32.5] },
-                },
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.12, 32.51] },
-                },
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.15, 32.49] },
-                },
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.08, 32.48] },
-                },
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.2, 32.46] },
-                },
-              ],
-            },
+            data: hindcastGeoJSON || { type: 'FeatureCollection', features: [] }
           });
           map.addLayer({
-            id: "hindcast-points",
-            type: "circle",
-            source: "hindcast-source",
+            id: 'hindcast-particles-circle',
+            type: 'circle',
+            source: 'hindcast-source',
             layout: { visibility: "none" },
-            paint: { "circle-color": "#f43f5e", "circle-radius": 4 },
+            paint: {
+              // Scale radius dynamically by mass (e.g., 200kg / 40 = 5px radius)
+              'circle-radius': ['/', ['get', 'mass'], 40],
+              
+              // Color gradient based on confidence score (Rose-200 to Rose-700)
+              'circle-color': [
+                'interpolate', ['linear'], ['get', 'confidence'],
+                0.25, '#fecdd3', // Low confidence
+                0.35, '#f43f5e', // Medium confidence
+                0.40, '#be123c'  // High confidence
+              ],
+              'circle-opacity': 0.8,
+              'circle-stroke-width': 0.5,
+              'circle-stroke-color': '#ffffff' // White border for contrast
+            }
           });
 
           // 3. AIS TRACKS
@@ -364,13 +373,14 @@ export const MapCanvas = ({
     // intentional: we don't put vesselTracksGeoJSON here so it doesn't re-init the whole map
   ]);
 
-  // Sync vessel trajectories and live vessels
+  // Sync vessel trajectories, live vessels, and sar slicks
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
     
     const updateSources = () => {
       if (!map.isStyleLoaded()) return;
+      
       const trackSource = map.getSource("ais_tracks-source");
       if (trackSource && vesselTracksGeoJSON) {
         trackSource.setData(vesselTracksGeoJSON);
@@ -380,6 +390,16 @@ export const MapCanvas = ({
       if (pointSource && vesselPointsGeoJSON) {
         pointSource.setData(vesselPointsGeoJSON);
       }
+
+      const sarSource = map.getSource("sar_slick-source");
+      if (sarSource && sarSlicksGeoJSON) {
+        sarSource.setData(sarSlicksGeoJSON);
+      }
+
+      const hindcastSource = map.getSource("hindcast-source");
+      if (hindcastSource && hindcastGeoJSON) {
+        hindcastSource.setData(hindcastGeoJSON);
+      }
     };
 
     updateSources();
@@ -387,7 +407,7 @@ export const MapCanvas = ({
     return () => {
       map.off("styledata", updateSources);
     };
-  }, [vesselTracksGeoJSON, vesselPointsGeoJSON]);
+  }, [vesselTracksGeoJSON, vesselPointsGeoJSON, sarSlicksGeoJSON, hindcastGeoJSON]);
 
   // Sync layers visibility from MapEngine
   useEffect(() => {
@@ -409,8 +429,8 @@ export const MapCanvas = ({
               visibility,
             );
         } else if (layer.id === "hindcast") {
-          if (map.getLayer("hindcast-points"))
-            map.setLayoutProperty("hindcast-points", "visibility", visibility);
+          if (map.getLayer("hindcast-particles-circle"))
+            map.setLayoutProperty("hindcast-particles-circle", "visibility", visibility);
         } else if (layer.id === "ais_tracks") {
           if (map.getLayer("ais_tracks-line"))
             map.setLayoutProperty("ais_tracks-line", "visibility", visibility);
@@ -544,6 +564,7 @@ export const MapCanvas = ({
     };
   }, [drawnPolygon, cursorCoordinate, isPolygonClosed, interactionMode]);
 
+  // Fly to generic pan coordinate
   useEffect(() => {
     if (mapRef.current && panToCoordinate?.lat && panToCoordinate?.lon) {
       mapRef.current.flyTo({
@@ -553,6 +574,18 @@ export const MapCanvas = ({
       });
     }
   }, [panToCoordinate]);
+
+  // Fly to active incident
+  useEffect(() => {
+    if (activeIncident?.center && mapRef.current) {
+      mapRef.current.flyTo({
+        center: activeIncident.center,
+        zoom: 11,
+        essential: true,
+        duration: 2000
+      });
+    }
+  }, [activeIncident]);
 
   // Fly to selected vessel
   useEffect(() => {

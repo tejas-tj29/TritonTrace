@@ -23,37 +23,33 @@ export const TriageQueue = () => {
     setPanToCoordinate,
     setActiveAnalysisMode,
     activeAnalysisMode,
+    incidents,
   } = useIncident();
   const [isDossierOpen, setIsDossierOpen] = useState(false);
 
   useEffect(() => {
-    const formattedReports = mockHistoricalIncidents.map((inc) => ({
-      id: inc.incident_id,
-      createdAt: inc.detection_timestamp,
-      status:
-        inc.status === "under_investigation"
-          ? "UNDER_REVIEW"
-          : inc.status.toUpperCase(),
-      lat: inc.coordinates.lat,
-      lon: inc.coordinates.lon,
-      spillType:
-        inc.source_type === "satellite_detected"
-          ? "SAR Detection"
-          : "Field Report",
+    const formattedReports = incidents.map((inc) => ({
+      id: inc.id,
+      createdAt: inc.date,
+      status: inc.status,
+      lat: inc.center[1], // center is [lon, lat]
+      lon: inc.center[0],
+      spillType: "SAR Detection",
+      original: inc
     }));
     setReports(
       formattedReports.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
       ),
     );
-  }, []);
+  }, [incidents]);
 
   const handleCardClick = (report) => {
-    if (activeIncident === report.id) {
+    if (activeIncident?.id === report.id) {
       setActiveIncident(null);
       setActiveAnalysisMode("none");
     } else {
-      setActiveIncident(report.id);
+      setActiveIncident(report.original);
       setActiveAnalysisMode("none");
       if (report.lat && report.lon) {
         setPanToCoordinate({
@@ -72,7 +68,7 @@ export const TriageQueue = () => {
 
       <div className="flex flex-col gap-3">
         {reports.map((report) => {
-          const isExpanded = activeIncident === report.id;
+          const isExpanded = activeIncident?.id === report.id;
 
           return (
             <div
@@ -196,7 +192,7 @@ export const TriageQueue = () => {
         isOpen={isDossierOpen}
         onClose={() => setIsDossierOpen(false)}
         incidentData={
-          reports.find((r) => r.id === activeIncident) || { id: "DEMO-123" }
+          reports.find((r) => r.id === activeIncident?.id) || { id: "DEMO-123" }
         }
       />
     </div>

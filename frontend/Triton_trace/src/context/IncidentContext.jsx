@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import Papa from "papaparse";
 import aisDataUrl from "../utils/east_med_massive_random_ais.csv?url";
+import spillDatabaseUrl from "../utils/database_payload.json?url";
 
 const IncidentContext = createContext();
 
@@ -25,9 +26,43 @@ const generateParticleSwarm = (centerLon, centerLat, count) => {
   return particles;
 };
 
+const realIncidents = [
+  {
+    id: "ow-0008",
+    title: "SAR Detection: ow-0008",
+    date: "2019-06-14T20:35:58",
+    status: "REVIEW",
+    image: "/ow-0008.jpg",
+    center: [35.264054, 34.074996], // [lon, lat]
+    polygon: [
+      [35.208083, 34.007546],
+      [35.320026, 34.007546],
+      [35.320026, 34.142445],
+      [35.208083, 34.142445],
+      [35.208083, 34.007546] // Close loop
+    ]
+  },
+  {
+    id: "ow-0009",
+    title: "SAR Detection: ow-0009",
+    date: "2019-04-28T15:38:41",
+    status: "UNDER_REVIEW",
+    image: "/ow-0009.jpg",
+    center: [34.889357, 34.606175], // [lon, lat]
+    polygon: [
+      [34.807722, 34.558783],
+      [34.970992, 34.558783],
+      [34.970992, 34.653566],
+      [34.807722, 34.653566],
+      [34.807722, 34.558783] // Close loop
+    ]
+  }
+];
+
 export const IncidentProvider = ({ children }) => {
   // 1. Global Incident State
   const [activeIncident, setActiveIncident] = useState(null);
+  const [incidents, setIncidents] = useState(realIncidents);
   const [panToCoordinate, setPanToCoordinate] = useState(null); // {lat, lon}
 
   // 2. Normal User Manual Mapping State
@@ -74,6 +109,15 @@ export const IncidentProvider = ({ children }) => {
         setCommercialFleet(liveFleet.slice(0, 10)); // Load top 10 ships
       }
     });
+  }, []);
+
+  const [spillDatabase, setSpillDatabase] = useState(null);
+  
+  useEffect(() => {
+    fetch(spillDatabaseUrl)
+      .then(res => res.json())
+      .then(data => setSpillDatabase(data))
+      .catch(err => console.error("Failed to load spill database:", err));
   }, []);
 
   // 3. Admin / Investigator Analytical State
@@ -153,6 +197,9 @@ export const IncidentProvider = ({ children }) => {
     activeAnalysisMode,
     setActiveAnalysisMode,
     commercialFleet,
+    incidents,
+    setIncidents,
+    spillDatabase,
   };
 
   return (
