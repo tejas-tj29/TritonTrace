@@ -10,6 +10,8 @@ import { LogOut } from "lucide-react";
 import { LayerControl } from "../map/LayerControl";
 import { MapLegend } from "../map/MapLegend";
 
+import { useIncident } from "../../context/IncidentContext";
+
 const INITIAL_LAYERS = [
   { id: "sar_slick", label: "SAR Slick Polygons", active: true, color: "bg-cyan-500" },
   { id: "hindcast", label: "Hindcast Particles", active: true, color: "bg-rose-500" },
@@ -19,6 +21,7 @@ const INITIAL_LAYERS = [
 
 export function CommercialPortal() {
   const { user, logout } = useAuth();
+  const { commercialFleet } = useIncident();
   const navigate = useNavigate();
   const [engine, setEngine] = useState("leaflet");
   const [selectedVesselId, setSelectedVesselId] = useState(null);
@@ -32,37 +35,6 @@ export function CommercialPortal() {
       )
     );
   };
-
-  const commercialFleet = [
-    { 
-      id: "v1", name: "MV HELIOS LEADER", speed: "14.2 kn", range: "12 NM", status: "ELEVATED WATCH", heading: 45, lat: 32.36, lon: 32.93,
-      trajectory: [[32.36, 32.93], [32.40, 32.95], [32.44, 32.98]]
-    },
-    { 
-      id: "v2", name: "MT AEGEAN GLORY", speed: "11.5 kn", range: "45 NM", status: "NORMAL", heading: 110, lat: 31.9, lon: 31.2,
-      trajectory: [[31.9, 31.2], [31.85, 31.3], [31.80, 31.4]]
-    },
-    { 
-      id: "v3", name: "MV NORDIC TRADER", speed: "13.8 kn", range: "8 NM", status: "CRITICAL", heading: 15, lat: 32.48, lon: 33.0,
-      trajectory: [[32.48, 33.0], [32.6, 33.1], [32.8, 33.2], [33.0, 33.3]]
-    },
-    {
-      id: "v4", name: "MSC ISABELLA", speed: "18.5 kn", range: "85 NM", status: "NORMAL", heading: 270, lat: 31.5, lon: 34.0,
-      trajectory: [[31.5, 34.0], [31.5, 33.8], [31.5, 33.5]]
-    },
-    {
-      id: "v5", name: "GASLOG WARSAW", speed: "16.2 kn", range: "32 NM", status: "ELEVATED WATCH", heading: 320, lat: 32.0, lon: 33.5,
-      trajectory: [[32.0, 33.5], [32.2, 33.3], [32.4, 33.1]]
-    },
-    {
-      id: "v7", name: "SEAWAYS REYMAR", speed: "12.0 kn", range: "14 NM", status: "CRITICAL", heading: 350, lat: 32.3, lon: 33.1,
-      trajectory: [[32.3, 33.1], [32.5, 33.05], [32.7, 33.0], [32.9, 32.95]]
-    },
-    {
-      id: "v8", name: "AL ZUBARAH", speed: "13.4 kn", range: "60 NM", status: "NORMAL", heading: 180, lat: 32.8, lon: 34.2,
-      trajectory: [[32.8, 34.2], [32.6, 34.2], [32.4, 34.2]]
-    }
-  ];
 
   const handleLogout = () => {
     logout();

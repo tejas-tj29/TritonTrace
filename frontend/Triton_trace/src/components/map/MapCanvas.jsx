@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { FallbackLeaflet } from "./FallbackLeaflet";
@@ -43,6 +43,43 @@ export const MapCanvas = ({
     latitude: defaultLat,
     zoom: defaultZoom,
   };
+
+  const vesselTracksGeoJSON = useMemo(() => {
+    if (!commercialFleet || commercialFleet.length === 0) return null;
+    return {
+      type: 'FeatureCollection',
+      features: commercialFleet
+        .filter(v => v.trajectory && v.trajectory.length >= 2)
+        .map(vessel => ({
+          type: 'Feature',
+          properties: { id: vessel.id },
+          geometry: {
+            type: 'LineString',
+            coordinates: vessel.trajectory
+          }
+        }))
+    };
+  }, [commercialFleet]);
+
+  const vesselPointsGeoJSON = useMemo(() => {
+    if (!commercialFleet || commercialFleet.length === 0) return null;
+    return {
+      type: 'FeatureCollection',
+      features: commercialFleet.map(vessel => ({
+        type: 'Feature',
+        properties: { 
+          id: vessel.id,
+          name: vessel.name,
+          heading: vessel.heading || 0, // Ensure a fallback
+          type: vessel.type || 'Unknown'
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: vessel.coordinates 
+        }
+      }))
+    };
+  }, [commercialFleet]);
 
   // Target AOI Bounding Box: Longitude 18.37°E to 45.0°E, Latitude 25.0°N to 37.7°N
   const aoiMaxBounds = [
@@ -186,24 +223,55 @@ export const MapCanvas = ({
           // 3. AIS TRACKS
           map.addSource("ais_tracks-source", {
             type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "LineString",
-                coordinates: [
-                  [32.5, 32.0],
-                  [32.8, 32.2],
-                  [33.1, 32.5],
-                ],
-              },
-            },
+            data: vesselTracksGeoJSON || { type: "FeatureCollection", features: [] },
           });
           map.addLayer({
             id: "ais_tracks-line",
             type: "line",
             source: "ais_tracks-source",
-            layout: { visibility: "none" },
-            paint: { "line-color": "#f59e0b", "line-width": 3 },
+            layout: { visibility: "visible" },
+            paint: { 
+              "line-color": "#94a3b8", 
+              "line-width": 2, 
+              "line-dasharray": [2, 2],
+              "line-opacity": 0.8
+            },
+          });
+
+          // 3.5 LIVE VESSELS
+          map.addSource("live-vessels-source", {
+            type: "geojson",
+            data: vesselPointsGeoJSON || { type: "FeatureCollection", features: [] }
+          });
+          map.addLayer({
+            id: 'live-vessels-symbol',
+            type: 'symbol',
+            source: 'live-vessels-source',
+            layout: {
+              'text-field': '▲', // Up-pointing triangle points North at 0 degrees
+              'text-rotate': ['get', 'heading'], // Rotates based on ship's real heading
+              'text-size': 18,
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+              'text-pitch-alignment': 'map'
+            },
+            paint: {
+              'text-color': [
+                'match',
+                ['get', 'type'],
+                'Crude Oil Tanker', '#ef4444',    // Red
+                'Chemical Tanker', '#f97316',     // Orange
+                'LNG Carrier', '#eab308',         // Yellow
+                'Product Tanker', '#ec4899',      // Pink
+                'Bulk Carrier', '#3b82f6',        // Blue
+                'Container Ship', '#8b5cf6',      // Purple
+                'General Cargo', '#14b8a6',       // Teal
+                'Fishing', '#22c55e',             // Green
+                '#ffffff'                         // Default White
+              ],
+              'text-halo-color': '#1e293b',       // Dark slate outline for contrast
+              'text-halo-width': 1.5
+            }
           });
 
           // 4. DIVERSION ROUTE
@@ -293,7 +361,33 @@ export const MapCanvas = ({
     interactive,
     useFallback,
     onEngineResolved,
+    // intentional: we don't put vesselTracksGeoJSON here so it doesn't re-init the whole map
   ]);
+
+  // Sync vessel trajectories and live vessels
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    
+    const updateSources = () => {
+      if (!map.isStyleLoaded()) return;
+      const trackSource = map.getSource("ais_tracks-source");
+      if (trackSource && vesselTracksGeoJSON) {
+        trackSource.setData(vesselTracksGeoJSON);
+      }
+      
+      const pointSource = map.getSource("live-vessels-source");
+      if (pointSource && vesselPointsGeoJSON) {
+        pointSource.setData(vesselPointsGeoJSON);
+      }
+    };
+
+    updateSources();
+    map.on("styledata", updateSources);
+    return () => {
+      map.off("styledata", updateSources);
+    };
+  }, [vesselTracksGeoJSON, vesselPointsGeoJSON]);
 
   // Sync layers visibility from MapEngine
   useEffect(() => {
@@ -477,31 +571,6 @@ export const MapCanvas = ({
     }
   }, [selectedVesselId, commercialFleet, useFallback]);
 
-  // Commercial Fleet Markers
-  const fleetMarkersRef = useRef({});
-
-  useEffect(() => {
-    if (!mapRef.current || useFallback) return;
-
-    // Clear old markers
-    Object.values(fleetMarkersRef.current).forEach((marker) => marker.remove());
-    fleetMarkersRef.current = {};
-
-    commercialFleet.forEach((vessel) => {
-      const el = document.createElement("div");
-      el.className =
-        "w-5 h-5 bg-cyan-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold";
-      el.style.boxShadow = "0 0 12px rgba(6,182,212,0.8)";
-      el.style.transform = `rotate(${vessel.heading || 0}deg)`;
-      el.innerHTML = "↑";
-
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([vessel.lon, vessel.lat])
-        .addTo(mapRef.current);
-
-      fleetMarkersRef.current[vessel.id] = marker;
-    });
-  }, [commercialFleet, useFallback]);
 
   // Diversion Route Update
   useEffect(() => {

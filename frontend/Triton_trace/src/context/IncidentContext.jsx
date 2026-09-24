@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import Papa from "papaparse";
+import aisDataUrl from "../utils/east_med_massive_random_ais.csv?url";
 
 const IncidentContext = createContext();
 
@@ -35,6 +37,44 @@ export const IncidentProvider = ({ children }) => {
   const [drawnPolygon, setDrawnPolygon] = useState([]); // array of [lon, lat]
   const [cursorCoordinate, setCursorCoordinate] = useState(null); // [lon, lat]
   const [isPolygonClosed, setIsPolygonClosed] = useState(false);
+
+  // 2.5 Live Fleet State
+  const [commercialFleet, setCommercialFleet] = useState([]);
+
+  useEffect(() => {
+    Papa.parse(aisDataUrl, {
+      download: true,
+      header: true,
+      dynamicTyping: true,
+      complete: (results) => {
+        const grouped = {};
+        results.data.forEach(row => {
+          if (!row.mmsi || !row.lat || !row.lon) return;
+          if (!grouped[row.mmsi]) grouped[row.mmsi] = [];
+          grouped[row.mmsi].push(row);
+        });
+
+        const liveFleet = Object.values(grouped).map(pings => {
+          pings.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const latest = pings[pings.length - 1];
+          return {
+            id: latest.mmsi.toString(),
+            name: latest.vessel_name || `UNKNOWN-${latest.mmsi}`,
+            type: latest.vessel_type,
+            speed: latest.sog,
+            heading: latest.cog,
+            status: 'NORMAL',
+            coordinates: [parseFloat(latest.lon), parseFloat(latest.lat)],
+            lat: parseFloat(latest.lat),
+            lon: parseFloat(latest.lon),
+            trajectory: pings.map(p => [parseFloat(p.lon), parseFloat(p.lat)])
+          };
+        }).filter(v => v.trajectory.length >= 2);
+
+        setCommercialFleet(liveFleet.slice(0, 10)); // Load top 10 ships
+      }
+    });
+  }, []);
 
   // 3. Admin / Investigator Analytical State
   const [activeAnalysisMode, setActiveAnalysisMode] = useState("none"); // 'none' | 'attribution' | 'forward_track'
@@ -112,6 +152,7 @@ export const IncidentProvider = ({ children }) => {
     setCorrelationMarker,
     activeAnalysisMode,
     setActiveAnalysisMode,
+    commercialFleet,
   };
 
   return (
