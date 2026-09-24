@@ -4,6 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { FallbackLeaflet } from "./FallbackLeaflet";
 import { useIncident } from "../../context/IncidentContext";
 import geofencesData from "../../utils/regional_alert_geofences.json";
+import * as turf from "@turf/turf";
 
 /**
  * MapCanvas Component
@@ -21,7 +22,17 @@ export const MapCanvas = ({
   const defaultLon = Number(import.meta.env.VITE_DEFAULT_LON) || 31.685;
   const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM) || 5.5;
 
-  const { panToCoordinate, correlationMarker } = useIncident();
+  const { 
+    panToCoordinate, 
+    correlationMarker,
+    interactionMode,
+    drawnPolygon,
+    addPolygonVertex,
+    cursorCoordinate,
+    setCursorCoordinate,
+    isPolygonClosed,
+    setIsPolygonClosed
+  } = useIncident();
 
   const initialViewState = {
     longitude: defaultLon,
@@ -43,6 +54,12 @@ export const MapCanvas = ({
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+
+  // State ref for event handlers to access latest state without rebinding
+  const stateRef = useRef({ interactionMode, drawnPolygon, isPolygonClosed });
+  useEffect(() => {
+    stateRef.current = { interactionMode, drawnPolygon, isPolygonClosed };
+  }, [interactionMode, drawnPolygon, isPolygonClosed]);
 
   useEffect(() => {
     if (useFallback) {
@@ -260,6 +277,24 @@ export const MapCanvas = ({
               "circle-stroke-color": "#020617", // Slate 950 border for high contrast
             },
           });
+
+          // 6. DRAWN POLYGON (Manual Mapping)
+          map.addSource("drawn-polygon-source", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] }
+          });
+          map.addLayer({
+            id: "drawn-polygon-fill",
+            type: "fill",
+            source: "drawn-polygon-source",
+            paint: { "fill-color": "#4f46e5", "fill-opacity": 0.3 }
+          });
+          map.addLayer({
+            id: "drawn-polygon-line",
+            type: "line",
+            source: "drawn-polygon-source",
+            paint: { "line-color": "#4f46e5", "line-width": 2, "line-dasharray": [2, 2] }
+          });
         } catch {
           // Source addition handled cleanly
         }
@@ -323,6 +358,104 @@ export const MapCanvas = ({
       map.off("styledata", updateVisibility);
     };
   }, [layers]);
+
+  // Handle Map Drawing Interactions
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    const handleClick = (e) => {
+      const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
+      if (interactionMode === 'draw_polygon' && !isPolygonClosed) {
+        const newPoint = [e.lngLat.lng, e.lngLat.lat];
+        
+        // Auto-close if clicked near the first vertex
+        if (drawnPolygon.length >= 3) {
+          const firstPoint = drawnPolygon[0];
+          const dist = turf.distance(turf.point(firstPoint), turf.point(newPoint), { units: 'kilometers' });
+          
+          if (dist < 50) { // 50km tolerance
+            setIsPolygonClosed(true);
+            setCursorCoordinate(null);
+            return;
+          }
+        }
+        addPolygonVertex(newPoint);
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      const { interactionMode, isPolygonClosed } = stateRef.current;
+      if (interactionMode === 'draw_polygon' && !isPolygonClosed) {
+        setCursorCoordinate([e.lngLat.lng, e.lngLat.lat]);
+      }
+    };
+
+    const handleDblClick = (e) => {
+      const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
+      if (interactionMode === 'draw_polygon' && !isPolygonClosed && drawnPolygon.length >= 3) {
+        e.preventDefault();
+        setIsPolygonClosed(true);
+        setCursorCoordinate(null);
+      }
+    };
+
+    map.on('click', handleClick);
+    map.on('mousemove', handleMouseMove);
+    map.on('dblclick', handleDblClick);
+
+    return () => {
+      map.off('click', handleClick);
+      map.off('mousemove', handleMouseMove);
+      map.off('dblclick', handleDblClick);
+    };
+  }, [addPolygonVertex, setCursorCoordinate, setIsPolygonClosed]);
+
+  // Render Drawn Polygon
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    
+    const updateDrawnPolygon = () => {
+      if (!map.isStyleLoaded()) return;
+      const source = map.getSource("drawn-polygon-source");
+      if (!source) return;
+
+      let coordinates = [...drawnPolygon];
+      if (interactionMode === 'draw_polygon' && !isPolygonClosed && cursorCoordinate) {
+        coordinates.push(cursorCoordinate);
+      }
+      
+      if (coordinates.length > 0) {
+        if (coordinates.length < 3) {
+          // Draw as a line
+          source.setData({
+            type: "Feature",
+            geometry: { type: "LineString", coordinates }
+          });
+        } else {
+          // Draw as a polygon, must be closed ring
+          const polyCoords = [...coordinates];
+          polyCoords.push(polyCoords[0]);
+          source.setData({
+            type: "Feature",
+            geometry: { type: "Polygon", coordinates: [polyCoords] }
+          });
+        }
+      } else {
+        source.setData({ type: "FeatureCollection", features: [] });
+      }
+    };
+
+    // Update immediately
+    updateDrawnPolygon();
+    
+    // And update on style load just in case
+    map.on("styledata", updateDrawnPolygon);
+    return () => {
+      map.off("styledata", updateDrawnPolygon);
+    };
+  }, [drawnPolygon, cursorCoordinate, isPolygonClosed, interactionMode]);
 
   useEffect(() => {
     if (mapRef.current && panToCoordinate?.lat && panToCoordinate?.lon) {
