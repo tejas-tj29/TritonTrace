@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import geofencesData from '../../data/regional_alert_geofences.json';
 
 // Fix Leaflet asset path resolution for bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -21,7 +22,10 @@ export const FallbackLeaflet = ({
   interactive = true,
   className = '',
   panToCoordinate,
-  correlationMarker
+  correlationMarker,
+  commercialFleet = [],
+  selectedVesselId = null,
+  showDiversionRoute = false
 }) => {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -125,6 +129,18 @@ export const FallbackLeaflet = ({
         weight: 1.5
       }).addTo(map);
 
+      // REGIONAL GEOFENCES
+      L.geoJSON(geofencesData, {
+        style: function (feature) {
+          return {
+            color: feature.properties.color,
+            fillColor: feature.properties.color,
+            fillOpacity: 0.2,
+            weight: 1.5
+          };
+        }
+      }).addTo(map);
+
       mapRef.current = map;
 
       // Invalidate size to guarantee crisp tile alignment
@@ -164,6 +180,21 @@ export const FallbackLeaflet = ({
     }
   }, [panToCoordinate]);
 
+  // Fly to selected vessel
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    if (selectedVesselId && commercialFleet.length > 0) {
+      const vessel = commercialFleet.find(v => v.id === selectedVesselId);
+      if (vessel && vessel.lat !== undefined && vessel.lon !== undefined) {
+        mapRef.current.flyTo([vessel.lat, vessel.lon], 9, {
+          animate: true,
+          duration: 1.5
+        });
+      }
+    }
+  }, [selectedVesselId, commercialFleet]);
+
   // Render or remove AIS Intersect target marker
   useEffect(() => {
     if (!mapRef.current) return;
@@ -186,6 +217,52 @@ export const FallbackLeaflet = ({
       correlationMarkerRef.current = L.marker([lat, lon], { icon: targetIcon }).addTo(mapRef.current);
     }
   }, [correlationMarker]);
+
+  // Commercial Fleet Markers
+  const fleetMarkersRef = useRef({});
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    Object.values(fleetMarkersRef.current).forEach(marker => marker.remove());
+    fleetMarkersRef.current = {};
+
+    commercialFleet.forEach(vessel => {
+      const icon = L.divIcon({
+        className: 'custom-fleet-marker',
+        html: `<div class="w-5 h-5 bg-cyan-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold" style="box-shadow: 0 0 12px rgba(6,182,212,0.8); transform: rotate(${vessel.heading || 0}deg);">↑</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      fleetMarkersRef.current[vessel.id] = L.marker([vessel.lat, vessel.lon], { icon }).addTo(mapRef.current);
+    });
+  }, [commercialFleet]);
+
+  // Diversion Route Update
+  const diversionRouteRef = useRef(null);
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (diversionRouteRef.current) {
+      diversionRouteRef.current.remove();
+      diversionRouteRef.current = null;
+    }
+    
+    if (showDiversionRoute && selectedVesselId) {
+      const vessel = commercialFleet.find(v => v.id === selectedVesselId);
+      if (vessel) {
+        // Curve north from vessel location
+        const coords = [
+          [vessel.lat, vessel.lon],
+          [vessel.lat + 0.8, vessel.lon + 0.5],
+          [vessel.lat + 0.9, vessel.lon + 1.2]
+        ];
+        diversionRouteRef.current = L.polyline(coords, {
+          color: '#10b981',
+          weight: 3,
+          dashArray: '5, 10'
+        }).addTo(mapRef.current);
+      }
+    }
+  }, [showDiversionRoute, selectedVesselId, commercialFleet]);
 
   return (
     <div className={`relative h-full w-full select-none overflow-hidden bg-slate-950 ${className}`}>

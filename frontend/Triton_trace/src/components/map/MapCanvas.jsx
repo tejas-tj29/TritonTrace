@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { FallbackLeaflet } from './FallbackLeaflet';
 import { useIncident } from '../../context/IncidentContext';
+import geofencesData from '../../data/regional_alert_geofences.json';
 
 /**
  * MapCanvas Component
@@ -13,7 +14,10 @@ export const MapCanvas = ({
   interactive = true,
   className = '',
   onEngineResolved,
-  layers = []
+  layers = [],
+  commercialFleet = [],
+  selectedVesselId = null,
+  showDiversionRoute = false
 }) => {
   // Read environment configuration with explicit numeric casting per PRD 6.2
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -146,20 +150,38 @@ export const MapCanvas = ({
             paint: { 'line-color': '#f59e0b', 'line-width': 3 }
           });
 
-          // 4. GEOFENCES
-          map.addSource('geofences-source', {
+          // 4. DIVERSION ROUTE
+          map.addSource('diversion-source', {
             type: 'geojson',
             data: {
               type: 'Feature',
-              geometry: { type: 'Polygon', coordinates: [[[31.0, 31.0], [35.0, 31.0], [35.0, 34.0], [31.0, 34.0], [31.0, 31.0]]] }
+              geometry: { type: 'LineString', coordinates: [] }
             }
+          });
+          map.addLayer({
+            id: 'diversion-line',
+            type: 'line',
+            source: 'diversion-source',
+            layout: { visibility: 'none' },
+            paint: { 'line-color': '#10b981', 'line-width': 3, 'line-dasharray': [3, 3] }
+          });
+
+          // 5. REGIONAL GEOFENCES
+          map.addSource('geofences-source', {
+            type: 'geojson',
+            data: geofencesData
+          });
+          map.addLayer({
+            id: 'geofences-fill',
+            type: 'fill',
+            source: 'geofences-source',
+            paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.2 }
           });
           map.addLayer({
             id: 'geofences-line',
             type: 'line',
             source: 'geofences-source',
-            layout: { visibility: 'none' },
-            paint: { 'line-color': '#10b981', 'line-width': 2, 'line-dasharray': [4, 4] }
+            paint: { 'line-color': ['get', 'color'], 'line-width': 1.5 }
           });
 
         } catch {
@@ -203,6 +225,7 @@ export const MapCanvas = ({
           if (map.getLayer('ais_tracks-line')) map.setLayoutProperty('ais_tracks-line', 'visibility', visibility);
         } else if (layer.id === 'geofences') {
           if (map.getLayer('geofences-line')) map.setLayoutProperty('geofences-line', 'visibility', visibility);
+          if (map.getLayer('geofences-fill')) map.setLayoutProperty('geofences-fill', 'visibility', visibility);
         }
       });
     };
@@ -225,6 +248,85 @@ export const MapCanvas = ({
     }
   }, [panToCoordinate]);
 
+  // Fly to selected vessel
+  useEffect(() => {
+    if (!mapRef.current || useFallback) return;
+    
+    if (selectedVesselId && commercialFleet.length > 0) {
+      const vessel = commercialFleet.find(v => v.id === selectedVesselId);
+      if (vessel && vessel.lat !== undefined && vessel.lon !== undefined) {
+        mapRef.current.flyTo({
+          center: [vessel.lon, vessel.lat], 
+          zoom: 9,
+          duration: 1500,
+          essential: true
+        });
+      }
+    }
+  }, [selectedVesselId, commercialFleet, useFallback]);
+
+  // Commercial Fleet Markers
+  const fleetMarkersRef = useRef({});
+
+  useEffect(() => {
+    if (!mapRef.current || useFallback) return;
+    
+    // Clear old markers
+    Object.values(fleetMarkersRef.current).forEach(marker => marker.remove());
+    fleetMarkersRef.current = {};
+
+    commercialFleet.forEach(vessel => {
+      const el = document.createElement('div');
+      el.className = 'w-5 h-5 bg-cyan-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold';
+      el.style.boxShadow = '0 0 12px rgba(6,182,212,0.8)';
+      el.style.transform = `rotate(${vessel.heading || 0}deg)`;
+      el.innerHTML = '↑';
+      
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([vessel.lon, vessel.lat])
+        .addTo(mapRef.current);
+      
+      fleetMarkersRef.current[vessel.id] = marker;
+    });
+  }, [commercialFleet, useFallback]);
+
+  // Diversion Route Update
+  useEffect(() => {
+    if (!mapRef.current || useFallback) return;
+    
+    const updateRoute = () => {
+      if (!mapRef.current.isStyleLoaded()) return;
+      const source = mapRef.current.getSource('diversion-source');
+      if (!source) return;
+
+      if (showDiversionRoute && selectedVesselId) {
+        const vessel = commercialFleet.find(v => v.id === selectedVesselId);
+        if (vessel) {
+          const coords = [
+            [vessel.lon, vessel.lat],
+            [vessel.lon + 0.5, vessel.lat + 0.8],
+            [vessel.lon + 1.2, vessel.lat + 0.9]
+          ];
+          source.setData({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: coords }
+          });
+          mapRef.current.setLayoutProperty('diversion-line', 'visibility', 'visible');
+        }
+      } else {
+        mapRef.current.setLayoutProperty('diversion-line', 'visibility', 'none');
+      }
+    };
+
+    updateRoute();
+    mapRef.current.on('styledata', updateRoute);
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.off('styledata', updateRoute);
+      }
+    };
+  }, [showDiversionRoute, selectedVesselId, commercialFleet, useFallback]);
+
   // If fallback is triggered, mount FallbackLeaflet silently
   if (useFallback) {
     return (
@@ -235,6 +337,9 @@ export const MapCanvas = ({
         className={className}
         panToCoordinate={panToCoordinate}
         correlationMarker={correlationMarker}
+        commercialFleet={commercialFleet}
+        selectedVesselId={selectedVesselId}
+        showDiversionRoute={showDiversionRoute}
       />
     );
   }
