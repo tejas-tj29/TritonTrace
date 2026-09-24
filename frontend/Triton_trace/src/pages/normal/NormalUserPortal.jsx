@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NormalUserLeft } from "./NormalUserLeft";
-import { MapCanvas } from "../map/MapCanvas"; // Assumes MapCanvas is your main unified map component
-import { TopHUD } from "../layout/TopHUD";
+import { MapCanvas } from "../../components/map/MapCanvas"; // Assumes MapCanvas is your main unified map component
+import { TopHUD } from "../../components/layout/TopHUD";
 import { PanelLeftOpen } from "lucide-react";
 import { mockIncident } from "../../utils/mockData";
 

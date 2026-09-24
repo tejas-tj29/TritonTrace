@@ -8,6 +8,7 @@ import { TopHUD } from "./components/layout/TopHUD";
 import { MapCanvas } from "./components/map/MapCanvas";
 import { mockIncident } from "./utils/mockData";
 import { InvestigatorPortal } from "./components/admin/InvestigatorPortal";
+import { NormalUserPortal } from "./pages/normal/NormalUserPortal";
 import { Flame, Eye, ShieldAlert, Ship, LogOut } from "lucide-react";
 
 function PortalWorkspace({ portalType }) {
@@ -176,7 +177,7 @@ export default function App() {
         path="/portal/normal"
         element={
           <RoleGuard allowedRoles={["normal"]}>
-            <PortalWorkspace portalType="normal" />
+            <NormalUserPortal />
           </RoleGuard>
         }
       />
