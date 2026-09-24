@@ -198,7 +198,6 @@ export default function App() {
         path="/portal/commercial"
         element={
           <RoleGuard allowedRoles={["commercial"]}>
-            <PortalWorkspace portalType="commercial" />
             <CommercialPortal />
           </RoleGuard>
         }

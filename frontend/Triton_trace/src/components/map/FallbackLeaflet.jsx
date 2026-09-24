@@ -151,6 +151,18 @@ export const FallbackLeaflet = ({
         },
       }).addTo(map);
 
+      // REGIONAL GEOFENCES
+      L.geoJSON(geofencesData, {
+        style: function (feature) {
+          return {
+            color: feature.properties.color,
+            fillColor: feature.properties.color,
+            fillOpacity: 0.2,
+            weight: 1.5
+          };
+        }
+      }).addTo(map);
+
       mapRef.current = map;
 
       // Invalidate size to guarantee crisp tile alignment
@@ -193,7 +205,6 @@ export const FallbackLeaflet = ({
   // Fly to selected vessel
   useEffect(() => {
     if (!mapRef.current) return;
-
     if (selectedVesselId && commercialFleet.length > 0) {
       const vessel = commercialFleet.find((v) => v.id === selectedVesselId);
       if (vessel && vessel.lat !== undefined && vessel.lon !== undefined) {
@@ -234,7 +245,6 @@ export const FallbackLeaflet = ({
   const fleetMarkersRef = useRef({});
   useEffect(() => {
     if (!mapRef.current) return;
-
     Object.values(fleetMarkersRef.current).forEach((marker) => marker.remove());
     fleetMarkersRef.current = {};
 
@@ -259,7 +269,6 @@ export const FallbackLeaflet = ({
       diversionRouteRef.current.remove();
       diversionRouteRef.current = null;
     }
-
     if (showDiversionRoute && selectedVesselId) {
       const vessel = commercialFleet.find((v) => v.id === selectedVesselId);
       if (vessel) {
