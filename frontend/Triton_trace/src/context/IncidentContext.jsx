@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import Papa from "papaparse";
 import aisDataUrl from "../utils/east_med_massive_random_ais.csv?url";
 
@@ -48,31 +54,36 @@ export const IncidentProvider = ({ children }) => {
       dynamicTyping: true,
       complete: (results) => {
         const grouped = {};
-        results.data.forEach(row => {
+        results.data.forEach((row) => {
           if (!row.mmsi || !row.lat || !row.lon) return;
           if (!grouped[row.mmsi]) grouped[row.mmsi] = [];
           grouped[row.mmsi].push(row);
         });
 
-        const liveFleet = Object.values(grouped).map(pings => {
-          pings.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          const latest = pings[pings.length - 1];
-          return {
-            id: latest.mmsi.toString(),
-            name: latest.vessel_name || `UNKNOWN-${latest.mmsi}`,
-            type: latest.vessel_type,
-            speed: latest.sog,
-            heading: latest.cog,
-            status: 'NORMAL',
-            coordinates: [parseFloat(latest.lon), parseFloat(latest.lat)],
-            lat: parseFloat(latest.lat),
-            lon: parseFloat(latest.lon),
-            trajectory: pings.map(p => [parseFloat(p.lon), parseFloat(p.lat)])
-          };
-        }).filter(v => v.trajectory.length >= 2);
+        const liveFleet = Object.values(grouped)
+          .map((pings) => {
+            pings.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const latest = pings[pings.length - 1];
+            return {
+              id: latest.mmsi.toString(),
+              name: latest.vessel_name || `UNKNOWN-${latest.mmsi}`,
+              type: latest.vessel_type,
+              speed: latest.sog,
+              heading: latest.cog,
+              status: "NORMAL",
+              coordinates: [parseFloat(latest.lon), parseFloat(latest.lat)],
+              lat: parseFloat(latest.lat),
+              lon: parseFloat(latest.lon),
+              trajectory: pings.map((p) => [
+                parseFloat(p.lon),
+                parseFloat(p.lat),
+              ]),
+            };
+          })
+          .filter((v) => v.trajectory.length >= 2);
 
         setCommercialFleet(liveFleet.slice(0, 10)); // Load top 10 ships
-      }
+      },
     });
   }, []);
 

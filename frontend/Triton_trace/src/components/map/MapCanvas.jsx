@@ -47,37 +47,37 @@ export const MapCanvas = ({
   const vesselTracksGeoJSON = useMemo(() => {
     if (!commercialFleet || commercialFleet.length === 0) return null;
     return {
-      type: 'FeatureCollection',
+      type: "FeatureCollection",
       features: commercialFleet
-        .filter(v => v.trajectory && v.trajectory.length >= 2)
-        .map(vessel => ({
-          type: 'Feature',
+        .filter((v) => v.trajectory && v.trajectory.length >= 2)
+        .map((vessel) => ({
+          type: "Feature",
           properties: { id: vessel.id },
           geometry: {
-            type: 'LineString',
-            coordinates: vessel.trajectory
-          }
-        }))
+            type: "LineString",
+            coordinates: vessel.trajectory,
+          },
+        })),
     };
   }, [commercialFleet]);
 
   const vesselPointsGeoJSON = useMemo(() => {
     if (!commercialFleet || commercialFleet.length === 0) return null;
     return {
-      type: 'FeatureCollection',
-      features: commercialFleet.map(vessel => ({
-        type: 'Feature',
-        properties: { 
+      type: "FeatureCollection",
+      features: commercialFleet.map((vessel) => ({
+        type: "Feature",
+        properties: {
           id: vessel.id,
           name: vessel.name,
           heading: vessel.heading || 0, // Ensure a fallback
-          type: vessel.type || 'Unknown'
+          type: vessel.type || "Unknown",
         },
         geometry: {
-          type: 'Point',
-          coordinates: vessel.coordinates 
-        }
-      }))
+          type: "Point",
+          coordinates: vessel.coordinates,
+        },
+      })),
     };
   }, [commercialFleet]);
 
@@ -223,55 +223,69 @@ export const MapCanvas = ({
           // 3. AIS TRACKS
           map.addSource("ais_tracks-source", {
             type: "geojson",
-            data: vesselTracksGeoJSON || { type: "FeatureCollection", features: [] },
+            data: vesselTracksGeoJSON || {
+              type: "FeatureCollection",
+              features: [],
+            },
           });
           map.addLayer({
             id: "ais_tracks-line",
             type: "line",
             source: "ais_tracks-source",
             layout: { visibility: "visible" },
-            paint: { 
-              "line-color": "#94a3b8", 
-              "line-width": 2, 
+            paint: {
+              "line-color": "#94a3b8",
+              "line-width": 2,
               "line-dasharray": [2, 2],
-              "line-opacity": 0.8
+              "line-opacity": 0.8,
             },
           });
 
           // 3.5 LIVE VESSELS
           map.addSource("live-vessels-source", {
             type: "geojson",
-            data: vesselPointsGeoJSON || { type: "FeatureCollection", features: [] }
+            data: vesselPointsGeoJSON || {
+              type: "FeatureCollection",
+              features: [],
+            },
           });
           map.addLayer({
-            id: 'live-vessels-symbol',
-            type: 'symbol',
-            source: 'live-vessels-source',
+            id: "live-vessels-symbol",
+            type: "symbol",
+            source: "live-vessels-source",
             layout: {
-              'text-field': '▲', // Up-pointing triangle points North at 0 degrees
-              'text-rotate': ['get', 'heading'], // Rotates based on ship's real heading
-              'text-size': 18,
-              'text-allow-overlap': true,
-              'text-ignore-placement': true,
-              'text-pitch-alignment': 'map'
+              "text-field": "▲", // Up-pointing triangle points North at 0 degrees
+              "text-rotate": ["get", "heading"], // Rotates based on ship's real heading
+              "text-size": 18,
+              "text-allow-overlap": true,
+              "text-ignore-placement": true,
+              "text-pitch-alignment": "map",
             },
             paint: {
-              'text-color': [
-                'match',
-                ['get', 'type'],
-                'Crude Oil Tanker', '#ef4444',    // Red
-                'Chemical Tanker', '#f97316',     // Orange
-                'LNG Carrier', '#eab308',         // Yellow
-                'Product Tanker', '#ec4899',      // Pink
-                'Bulk Carrier', '#3b82f6',        // Blue
-                'Container Ship', '#8b5cf6',      // Purple
-                'General Cargo', '#14b8a6',       // Teal
-                'Fishing', '#22c55e',             // Green
-                '#ffffff'                         // Default White
+              "text-color": [
+                "match",
+                ["get", "type"],
+                "Crude Oil Tanker",
+                "#ef4444", // Red
+                "Chemical Tanker",
+                "#f97316", // Orange
+                "LNG Carrier",
+                "#eab308", // Yellow
+                "Product Tanker",
+                "#ec4899", // Pink
+                "Bulk Carrier",
+                "#3b82f6", // Blue
+                "Container Ship",
+                "#8b5cf6", // Purple
+                "General Cargo",
+                "#14b8a6", // Teal
+                "Fishing",
+                "#22c55e", // Green
+                "#ffffff", // Default White
               ],
-              'text-halo-color': '#1e293b',       // Dark slate outline for contrast
-              'text-halo-width': 1.5
-            }
+              "text-halo-color": "#1e293b", // Dark slate outline for contrast
+              "text-halo-width": 1.5,
+            },
           });
 
           // 4. DIVERSION ROUTE
@@ -368,14 +382,14 @@ export const MapCanvas = ({
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
-    
+
     const updateSources = () => {
       if (!map.isStyleLoaded()) return;
       const trackSource = map.getSource("ais_tracks-source");
       if (trackSource && vesselTracksGeoJSON) {
         trackSource.setData(vesselTracksGeoJSON);
       }
-      
+
       const pointSource = map.getSource("live-vessels-source");
       if (pointSource && vesselPointsGeoJSON) {
         pointSource.setData(vesselPointsGeoJSON);
@@ -570,7 +584,6 @@ export const MapCanvas = ({
       }
     }
   }, [selectedVesselId, commercialFleet, useFallback]);
-
 
   // Diversion Route Update
   useEffect(() => {
