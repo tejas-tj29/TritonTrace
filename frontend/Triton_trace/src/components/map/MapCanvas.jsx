@@ -3,7 +3,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { FallbackLeaflet } from "./FallbackLeaflet";
 import { useIncident } from "../../context/IncidentContext";
-import geofencesData from "../../data/regional_alert_geofences.json";
+import geofencesData from "../../utils/regional_alert_geofences.json";
 import * as turf from "@turf/turf";
 
 /**
@@ -26,8 +26,8 @@ export const MapCanvas = ({
   const defaultLon = Number(import.meta.env.VITE_DEFAULT_LON) || 31.685;
   const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM) || 5.5;
 
-  const { 
-    panToCoordinate, 
+  const {
+    panToCoordinate,
     correlationMarker,
     interactionMode,
     drawnPolygon,
@@ -35,7 +35,7 @@ export const MapCanvas = ({
     cursorCoordinate,
     setCursorCoordinate,
     isPolygonClosed,
-    setIsPolygonClosed
+    setIsPolygonClosed,
   } = useIncident();
 
   const initialViewState = {
@@ -247,19 +247,23 @@ export const MapCanvas = ({
           // 6. DRAWN POLYGON (Manual Mapping)
           map.addSource("drawn-polygon-source", {
             type: "geojson",
-            data: { type: "FeatureCollection", features: [] }
+            data: { type: "FeatureCollection", features: [] },
           });
           map.addLayer({
             id: "drawn-polygon-fill",
             type: "fill",
             source: "drawn-polygon-source",
-            paint: { "fill-color": "#4f46e5", "fill-opacity": 0.3 }
+            paint: { "fill-color": "#4f46e5", "fill-opacity": 0.3 },
           });
           map.addLayer({
             id: "drawn-polygon-line",
             type: "line",
             source: "drawn-polygon-source",
-            paint: { "line-color": "#4f46e5", "line-width": 2, "line-dasharray": [2, 2] }
+            paint: {
+              "line-color": "#4f46e5",
+              "line-width": 2,
+              "line-dasharray": [2, 2],
+            },
           });
         } catch {
           // Source addition handled cleanly
@@ -339,16 +343,22 @@ export const MapCanvas = ({
     const map = mapRef.current;
 
     const handleClick = (e) => {
-      const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed) {
+      const { interactionMode, drawnPolygon, isPolygonClosed } =
+        stateRef.current;
+      if (interactionMode === "draw_polygon" && !isPolygonClosed) {
         const newPoint = [e.lngLat.lng, e.lngLat.lat];
-        
+
         // Auto-close if clicked near the first vertex
         if (drawnPolygon.length >= 3) {
           const firstPoint = drawnPolygon[0];
-          const dist = turf.distance(turf.point(firstPoint), turf.point(newPoint), { units: 'kilometers' });
-          
-          if (dist < 50) { // 50km tolerance
+          const dist = turf.distance(
+            turf.point(firstPoint),
+            turf.point(newPoint),
+            { units: "kilometers" },
+          );
+
+          if (dist < 50) {
+            // 50km tolerance
             setIsPolygonClosed(true);
             setCursorCoordinate(null);
             return;
@@ -360,28 +370,33 @@ export const MapCanvas = ({
 
     const handleMouseMove = (e) => {
       const { interactionMode, isPolygonClosed } = stateRef.current;
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed) {
+      if (interactionMode === "draw_polygon" && !isPolygonClosed) {
         setCursorCoordinate([e.lngLat.lng, e.lngLat.lat]);
       }
     };
 
     const handleDblClick = (e) => {
-      const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed && drawnPolygon.length >= 3) {
+      const { interactionMode, drawnPolygon, isPolygonClosed } =
+        stateRef.current;
+      if (
+        interactionMode === "draw_polygon" &&
+        !isPolygonClosed &&
+        drawnPolygon.length >= 3
+      ) {
         e.preventDefault();
         setIsPolygonClosed(true);
         setCursorCoordinate(null);
       }
     };
 
-    map.on('click', handleClick);
-    map.on('mousemove', handleMouseMove);
-    map.on('dblclick', handleDblClick);
+    map.on("click", handleClick);
+    map.on("mousemove", handleMouseMove);
+    map.on("dblclick", handleDblClick);
 
     return () => {
-      map.off('click', handleClick);
-      map.off('mousemove', handleMouseMove);
-      map.off('dblclick', handleDblClick);
+      map.off("click", handleClick);
+      map.off("mousemove", handleMouseMove);
+      map.off("dblclick", handleDblClick);
     };
   }, [addPolygonVertex, setCursorCoordinate, setIsPolygonClosed]);
 
@@ -389,23 +404,27 @@ export const MapCanvas = ({
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
-    
+
     const updateDrawnPolygon = () => {
       if (!map.isStyleLoaded()) return;
       const source = map.getSource("drawn-polygon-source");
       if (!source) return;
 
       let coordinates = [...drawnPolygon];
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed && cursorCoordinate) {
+      if (
+        interactionMode === "draw_polygon" &&
+        !isPolygonClosed &&
+        cursorCoordinate
+      ) {
         coordinates.push(cursorCoordinate);
       }
-      
+
       if (coordinates.length > 0) {
         if (coordinates.length < 3) {
           // Draw as a line
           source.setData({
             type: "Feature",
-            geometry: { type: "LineString", coordinates }
+            geometry: { type: "LineString", coordinates },
           });
         } else {
           // Draw as a polygon, must be closed ring
@@ -413,7 +432,7 @@ export const MapCanvas = ({
           polyCoords.push(polyCoords[0]);
           source.setData({
             type: "Feature",
-            geometry: { type: "Polygon", coordinates: [polyCoords] }
+            geometry: { type: "Polygon", coordinates: [polyCoords] },
           });
         }
       } else {
@@ -423,14 +442,13 @@ export const MapCanvas = ({
 
     // Update immediately
     updateDrawnPolygon();
-    
+
     // And update on style load just in case
     map.on("styledata", updateDrawnPolygon);
     return () => {
       map.off("styledata", updateDrawnPolygon);
     };
   }, [drawnPolygon, cursorCoordinate, isPolygonClosed, interactionMode]);
-
 
   useEffect(() => {
     if (mapRef.current && panToCoordinate?.lat && panToCoordinate?.lon) {

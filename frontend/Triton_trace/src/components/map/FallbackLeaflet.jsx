@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import geofencesData from "../../data/regional_alert_geofences.json";
+import geofencesData from "../../utils/regional_alert_geofences.json";
 
 // Fix Leaflet asset path resolution for bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -158,9 +158,9 @@ export const FallbackLeaflet = ({
             color: feature.properties.color,
             fillColor: feature.properties.color,
             fillOpacity: 0.2,
-            weight: 1.5
+            weight: 1.5,
           };
-        }
+        },
       }).addTo(map);
 
       mapRef.current = map;
