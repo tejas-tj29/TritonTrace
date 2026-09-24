@@ -149,3 +149,23 @@ export const mockHistoricalIncidents = [
     ],
   },
 ];
+export const mockForwardTrack = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [33.1, 32.5],
+            [33.5, 32.1],
+            [34.0, 31.8],
+            [33.6, 32.6],
+            [33.1, 32.5],
+          ],
+        ],
+      },
+    },
+  ],
+};

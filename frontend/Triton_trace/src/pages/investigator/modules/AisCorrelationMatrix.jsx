@@ -1,4 +1,3 @@
-import React from 'react';
 import { useIncident } from '../../../context/IncidentContext';
 import { Crosshair, Navigation, AlertTriangle } from 'lucide-react';
 

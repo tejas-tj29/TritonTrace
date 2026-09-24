@@ -1,88 +1,52 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useIncident } from "../../../context/IncidentContext";
-import { mockHistoricalIncidents } from "../../../utils/mockData"; // 👈 1. Import the mock data
+import { mockHistoricalIncidents } from "../../../utils/mockData";
 import { DossierModal } from "./DossierModal";
 import {
-  ShieldCheck,
   FastForward,
   Download,
   Target,
-  Play,
-  Pause,
-  Clock,
-  Crosshair,
   FileText,
 } from "lucide-react";
 
+const getInitialReports = () => {
+  const formatted = mockHistoricalIncidents.map((inc) => ({
+    id: inc.incident_id,
+    createdAt: inc.detection_timestamp,
+    status:
+      inc.status === "under_investigation"
+        ? "UNDER_REVIEW"
+        : inc.status.toUpperCase(),
+    lat: inc.coordinates.lat,
+    lon: inc.coordinates.lon,
+    spillType:
+      inc.source_type === "satellite_detected"
+        ? "SAR Detection"
+        : "Field Report",
+  }));
+
+  return formatted.sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  );
+};
+
 export const TriageQueue = () => {
-  const [reports, setReports] = useState([]);
+  const [reports, setReports] = useState(getInitialReports);
   const {
     activeIncident,
     setActiveIncident,
     setPanToCoordinate,
     setActiveAnalysisMode,
     activeAnalysisMode,
-    updateHindcastTimeline,
-    setCorrelationMarker,
   } = useIncident();
-  const [isExporting, setIsExporting] = useState(false);
   const [isDossierOpen, setIsDossierOpen] = useState(false);
-  const [timeOffset, setTimeOffset] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
 
-  // 👈 2. Map the mock data directly into the component's state
-  const loadReports = () => {
-    const formattedReports = mockHistoricalIncidents.map((inc) => ({
-      id: inc.incident_id,
-      createdAt: inc.detection_timestamp,
-      // Map the lowercase status to the uppercase UI badges
-      status:
-        inc.status === "under_investigation"
-          ? "UNDER_REVIEW"
-          : inc.status.toUpperCase(),
-      lat: inc.coordinates.lat,
-      lon: inc.coordinates.lon,
-      spillType:
-        inc.source_type === "satellite_detected"
-          ? "SAR Detection"
-          : "Field Report",
-    }));
-
-    // Sort so the newest incidents appear at the top
-    setReports(
-      formattedReports.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-      ),
+  const handleUpdateStatus = (e, reportId, newStatus) => {
+    e.stopPropagation();
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r)),
     );
   };
-
-  useEffect(() => {
-    loadReports();
-  }, []);
-
-  // ... (Keep your existing useEffect for the hindcast player)
-  useEffect(() => {
-    let interval;
-    if (isPlaying && activeAnalysisMode === "attribution") {
-      interval = setInterval(() => {
-        setTimeOffset((prev) => {
-          const next = prev - 1;
-          if (next < -24) {
-            setIsPlaying(false);
-            return -24;
-          }
-          return next;
-        });
-      }, 500);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, activeAnalysisMode]);
-
-  useEffect(() => {
-    if (activeAnalysisMode === "attribution") {
-      updateHindcastTimeline(timeOffset);
-    }
-  }, [timeOffset, updateHindcastTimeline, activeAnalysisMode]);
 
   const handleCardClick = (report) => {
     if (activeIncident === report.id) {
@@ -130,7 +94,7 @@ export const TriageQueue = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 pb-4 font-sans">
+    <div className="flex flex-col gap-4 pb-4 font-sans text-left">
       <h2 className="text-xs font-bold text-slate-500 tracking-widest uppercase">
         Incident Triage Queue
       </h2>
@@ -158,7 +122,7 @@ export const TriageQueue = () => {
                 <div
                   className={`flex justify-between items-start p-3 ${isExpanded ? "bg-brand-50/50" : "bg-white"}`}
                 >
-                  <div className="flex flex-col">
+                  <div className="flex flex-col text-left">
                     <span
                       className={`${isExpanded ? "text-brand-700" : "text-slate-900"} font-mono font-bold text-xs transition-colors`}
                     >
@@ -173,18 +137,24 @@ export const TriageQueue = () => {
 
                 {/* Expanded Content */}
                 {isExpanded && (
-                  <div className="flex flex-col px-3 pb-3 border-t border-slate-100 mt-1 pt-3 animate-in fade-in duration-200">
+                  <div className="flex flex-col px-3 pb-3 border-t border-slate-100 mt-1 pt-3 animate-in fade-in duration-200 text-left">
                     {/* Status Modifiers */}
                     <div className="flex gap-2 mb-4">
-                      <button className="flex-1 py-1.5 flex justify-center items-center bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded text-[10px] font-bold transition-colors shadow-sm">
+                      <button
+                        onClick={(e) => handleUpdateStatus(e, report.id, "VERIFIED")}
+                        className="flex-1 py-1.5 flex justify-center items-center bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded text-[10px] font-bold transition-colors shadow-sm"
+                      >
                         VERIFY
                       </button>
-                      <button className="flex-1 py-1.5 flex justify-center items-center bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded text-[10px] font-bold transition-colors shadow-sm">
+                      <button
+                        onClick={(e) => handleUpdateStatus(e, report.id, "FALSE_POSITIVE")}
+                        className="flex-1 py-1.5 flex justify-center items-center bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded text-[10px] font-bold transition-colors shadow-sm"
+                      >
                         FLAG
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="grid grid-cols-2 gap-2 mb-4 text-left">
                       <div className="flex flex-col">
                         <span className="text-[9px] text-slate-500 font-bold">
                           COORDINATES
@@ -263,7 +233,13 @@ export const TriageQueue = () => {
                         >
                           <FileText className="w-3.5 h-3.5" /> DOSSIER
                         </button>
-                        <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md bg-brand-50 hover:bg-brand-100 border border-brand-200 text-brand-700 text-[10px] font-bold tracking-wider transition-colors shadow-sm">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsDossierOpen(true);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md bg-brand-50 hover:bg-brand-100 border border-brand-200 text-brand-700 text-[10px] font-bold tracking-wider transition-colors shadow-sm"
+                        >
                           <Download className="w-3.5 h-3.5" /> EXPORT
                         </button>
                       </div>
@@ -280,9 +256,17 @@ export const TriageQueue = () => {
         isOpen={isDossierOpen}
         onClose={() => setIsDossierOpen(false)}
         incidentData={
-          reports.find((r) => r.id === activeIncident) || { id: "DEMO-123" }
+          reports.find((r) => r.id === activeIncident) || {
+            id: activeIncident || "Med-Spill-017",
+            createdAt: new Date().toISOString(),
+            status: "UNDER_REVIEW",
+            lat: 32.5,
+            lon: 33.1,
+            spillType: "SAR Detection",
+          }
         }
       />
     </div>
   );
 };
+

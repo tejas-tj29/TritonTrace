@@ -19,10 +19,13 @@ export const FallbackLeaflet = ({
   center = [31.350, 31.685], // Leaflet uses [Latitude, Longitude]
   zoom = 5.5,
   interactive = true,
-  className = ''
+  className = '',
+  panToCoordinate,
+  correlationMarker
 }) => {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
+  const correlationMarkerRef = useRef(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -151,6 +154,38 @@ export const FallbackLeaflet = ({
       mapRef.current.setView(center, zoom);
     }
   }, [center, zoom]);
+
+  // Pan to requested incident or asset coordinate
+  useEffect(() => {
+    if (mapRef.current && panToCoordinate?.lat && panToCoordinate?.lon) {
+      mapRef.current.flyTo([panToCoordinate.lat, panToCoordinate.lon], 7.5, {
+        duration: 1.2
+      });
+    }
+  }, [panToCoordinate]);
+
+  // Render or remove AIS Intersect target marker
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (correlationMarkerRef.current) {
+      correlationMarkerRef.current.remove();
+      correlationMarkerRef.current = null;
+    }
+    if (correlationMarker && correlationMarker.length >= 2) {
+      // correlationMarker is [lon, lat] -> Leaflet uses [lat, lon]
+      const lat = correlationMarker[1];
+      const lon = correlationMarker[0];
+      const targetIcon = L.divIcon({
+        className: 'custom-crosshair-marker',
+        html: `<div style="width:24px;height:24px;border:2px solid #f43f5e;border-radius:50%;background:rgba(244,63,94,0.25);box-shadow:0 0 12px #f43f5e;display:flex;align-items:center;justify-content:center;animation:pulse 1.5s infinite;">
+                 <div style="width:6px;height:6px;background:#f43f5e;border-radius:50%;"></div>
+               </div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+      correlationMarkerRef.current = L.marker([lat, lon], { icon: targetIcon }).addTo(mapRef.current);
+    }
+  }, [correlationMarker]);
 
   return (
     <div className={`relative h-full w-full select-none overflow-hidden bg-slate-950 ${className}`}>

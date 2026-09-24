@@ -13,14 +13,28 @@ export const DossierModal = ({ isOpen, onClose, incidentData }) => {
 
   if (!isOpen) return null;
 
+  const latDisplay = incidentData?.lat
+    ? `${parseFloat(incidentData.lat).toFixed(2)}°N`
+    : "31.85°N";
+  const lonDisplay = incidentData?.lon
+    ? `${parseFloat(incidentData.lon).toFixed(2)}°E`
+    : "28.25°E";
+  const sensorDisplay = incidentData?.spillType || "Sentinel-1 SAR";
+  const statusDisplay = incidentData?.status || "UNDER_REVIEW";
+
   const handleExportJSON = () => {
     setIsGenerating(true);
     setTimeout(() => {
       const data = {
         caseId: incidentData?.id || "UNASSIGNED",
         timestamp: incidentData?.createdAt || new Date().toISOString(),
+        status: statusDisplay,
+        coordinates: {
+          lat: incidentData?.lat || 31.85,
+          lon: incidentData?.lon || 28.25,
+        },
         satelliteData: {
-          sensor: "Sentinel-1",
+          sensor: sensorDisplay,
           polarization: "VV/VH",
           backscatter: "-22.4 dB",
         },
@@ -41,7 +55,7 @@ export const DossierModal = ({ isOpen, onClose, incidentData }) => {
       a.click();
       URL.revokeObjectURL(url);
       setIsGenerating(false);
-    }, 800);
+    }, 400);
   };
 
   const handlePrint = () => window.print();
@@ -76,8 +90,7 @@ export const DossierModal = ({ isOpen, onClose, incidentData }) => {
             </span>
             <div className="bg-slate-50 p-3 rounded-md border border-slate-200 shadow-sm leading-relaxed">
               <div>
-                <strong className="text-slate-900">Sensor:</strong> Sentinel-1
-                SAR
+                <strong className="text-slate-900">Sensor:</strong> {sensorDisplay}
               </div>
               <div>
                 <strong className="text-slate-900">Polarization:</strong> VV/VH
@@ -87,7 +100,7 @@ export const DossierModal = ({ isOpen, onClose, incidentData }) => {
                 dB
               </div>
               <div>
-                <strong className="text-slate-900">Est. Slick Area:</strong> 4.2
+                <strong className="text-slate-900">Est. Slick Area:</strong> 14.6
                 km²
               </div>
             </div>
@@ -100,7 +113,11 @@ export const DossierModal = ({ isOpen, onClose, incidentData }) => {
             <div className="bg-slate-50 p-3 rounded-md border border-slate-200 shadow-sm leading-relaxed">
               <div>
                 <strong className="text-slate-900">Target Origin:</strong>{" "}
-                31.85°N, 28.25°E
+                {latDisplay}, {lonDisplay}
+              </div>
+              <div>
+                <strong className="text-slate-900">Status:</strong>{" "}
+                {statusDisplay}
               </div>
               <div>
                 <strong className="text-slate-900">Drift Duration:</strong> 14.5

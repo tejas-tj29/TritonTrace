@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useIncident } from '../../../context/IncidentContext';
 import { Play, Pause, SkipBack, SkipForward, Wind, Compass } from 'lucide-react';
 

@@ -33,10 +33,7 @@ export const InvestigatorLeft = ({ onCollapse }) => {
 
       {/* Module Container */}
       <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
-        {/* <TriageQueue /> */}
-        <div className="p-4 text-sm text-slate-500 border border-dashed border-slate-300 rounded bg-slate-50 text-center">
-          <TriageQueue />
-        </div>
+        <TriageQueue />
       </div>
     </aside>
   );
