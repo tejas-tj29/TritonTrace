@@ -8,6 +8,7 @@ import { TopHUD } from "./components/layout/TopHUD";
 import { MapCanvas } from "./components/map/MapCanvas";
 import { mockIncident } from "./utils/mockData";
 import { InvestigatorPortal } from "./components/admin/InvestigatorPortal";
+import { CommercialPortal } from "./components/commercial/CommercialPortal";
 import { NormalUserPortal } from "./pages/normal/NormalUserPortal";
 import { Flame, Eye, ShieldAlert, Ship, LogOut } from "lucide-react";
 
@@ -198,6 +199,7 @@ export default function App() {
         element={
           <RoleGuard allowedRoles={["commercial"]}>
             <PortalWorkspace portalType="commercial" />
+            <CommercialPortal />
           </RoleGuard>
         }
       />

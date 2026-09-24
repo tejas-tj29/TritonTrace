@@ -3,8 +3,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { FallbackLeaflet } from "./FallbackLeaflet";
 import { useIncident } from "../../context/IncidentContext";
-import geofencesData from "../../utils/regional_alert_geofences.json";
-import * as turf from "@turf/turf";
+import geofencesData from "../../data/regional_alert_geofences.json";
 
 /**
  * MapCanvas Component
@@ -16,23 +15,17 @@ export const MapCanvas = ({
   className = "",
   onEngineResolved,
   layers = [],
+  commercialFleet = [],
+  selectedVesselId = null,
+  showDiversionRoute = false,
 }) => {
+  // Read environment configuration with explicit numeric casting per PRD 6.2
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   const defaultLat = Number(import.meta.env.VITE_DEFAULT_LAT) || 31.35;
   const defaultLon = Number(import.meta.env.VITE_DEFAULT_LON) || 31.685;
   const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM) || 5.5;
 
-  const { 
-    panToCoordinate, 
-    correlationMarker,
-    interactionMode,
-    drawnPolygon,
-    addPolygonVertex,
-    cursorCoordinate,
-    setCursorCoordinate,
-    isPolygonClosed,
-    setIsPolygonClosed
-  } = useIncident();
+  const { panToCoordinate, correlationMarker } = useIncident();
 
   const initialViewState = {
     longitude: defaultLon,
@@ -40,28 +33,23 @@ export const MapCanvas = ({
     zoom: defaultZoom,
   };
 
+  // Target AOI Bounding Box: Longitude 18.37°E to 45.0°E, Latitude 25.0°N to 37.7°N
   const aoiMaxBounds = [
-    [18.37, 25.0],
-    [45.0, 37.7],
+    [18.37, 25.0], // Southwest [lng, lat]
+    [45.0, 37.7], // Northeast [lng, lat]
   ];
 
+  // Check token and WebGL support at initial state to avoid setState inside effect
   const [useFallback, setUseFallback] = useState(() => {
     if (!token || token.trim() === "") return true;
     if (!mapboxgl.supported || !mapboxgl.supported()) return true;
     return false;
   });
-
   const containerRef = useRef(null);
   const mapRef = useRef(null);
-  const markerRef = useRef(null);
-
-  // State ref for event handlers to access latest state without rebinding
-  const stateRef = useRef({ interactionMode, drawnPolygon, isPolygonClosed });
-  useEffect(() => {
-    stateRef.current = { interactionMode, drawnPolygon, isPolygonClosed };
-  }, [interactionMode, drawnPolygon, isPolygonClosed]);
 
   useEffect(() => {
+    // If fallback is already active, notify engine resolution and return
     if (useFallback) {
       if (onEngineResolved) onEngineResolved("leaflet");
       return;
@@ -70,6 +58,7 @@ export const MapCanvas = ({
     try {
       mapboxgl.accessToken = token;
 
+      // Mapbox GL coordinate format is [Longitude, Latitude]
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/dark-v11",
@@ -80,7 +69,9 @@ export const MapCanvas = ({
         attributionControl: false,
       });
 
+      // Catch asynchronous token authorization, style loading, or WebGL tile errors
       map.on("error", (e) => {
+        // Prevent console pollution and gracefully fallback
         if (
           e &&
           e.error &&
@@ -97,7 +88,7 @@ export const MapCanvas = ({
         if (onEngineResolved) onEngineResolved("mapbox");
 
         try {
-          // 1. SAR SLICK
+          // 1. SAR SLICK (Using existing coordinates)
           map.addSource("sar_slick-source", {
             type: "geojson",
             data: {
@@ -123,7 +114,7 @@ export const MapCanvas = ({
             id: "sar_slick-fill",
             type: "fill",
             source: "sar_slick-source",
-            layout: { visibility: "none" },
+            layout: { visibility: "none" }, // will be set by useEffect
             paint: { "fill-color": "#22d3ee", "fill-opacity": 0.3 },
           });
           map.addLayer({
@@ -198,102 +189,42 @@ export const MapCanvas = ({
             paint: { "line-color": "#f59e0b", "line-width": 3 },
           });
 
-          // 4. GEOFENCES (Outer Boundaries)
+          // 4. DIVERSION ROUTE
+          map.addSource("diversion-source", {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              geometry: { type: "LineString", coordinates: [] },
+            },
+          });
+          map.addLayer({
+            id: "diversion-line",
+            type: "line",
+            source: "diversion-source",
+            layout: { visibility: "none" },
+            paint: {
+              "line-color": "#10b981",
+              "line-width": 3,
+              "line-dasharray": [3, 3],
+            },
+          });
+
+          // 5. REGIONAL GEOFENCES
           map.addSource("geofences-source", {
             type: "geojson",
             data: geofencesData,
           });
-
           map.addLayer({
             id: "geofences-fill",
             type: "fill",
             source: "geofences-source",
-            layout: { visibility: "none" },
-            paint: {
-              "fill-color": ["get", "color"],
-              "fill-opacity": 0.15,
-            },
+            paint: { "fill-color": ["get", "color"], "fill-opacity": 0.2 },
           });
-
           map.addLayer({
-            id: "geofences-line-watch",
+            id: "geofences-line",
             type: "line",
             source: "geofences-source",
-            layout: { visibility: "none" },
-            filter: ["==", ["get", "zone_level"], "Watch Zone"],
-            paint: {
-              "line-color": ["get", "color"],
-              "line-width": 1.5,
-              "line-dasharray": [4, 4],
-              "line-opacity": 0.85,
-            },
-          });
-
-          map.addLayer({
-            id: "geofences-line-critical",
-            type: "line",
-            source: "geofences-source",
-            layout: { visibility: "none" },
-            filter: ["==", ["get", "zone_level"], "Critical Strike Zone"],
-            paint: {
-              "line-color": ["get", "color"],
-              "line-width": 2,
-              "line-opacity": 0.85,
-            },
-          });
-
-          // 5. GEOFENCE HOTSPOTS (Center Circles)
-          const geofencesCentersData = {
-            type: "FeatureCollection",
-            features: geofencesData.features.map((f) => ({
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                // Extract first coordinate from polygon ring to act as a center point hotspot
-                coordinates: [
-                  f.geometry.coordinates[0][0][0],
-                  f.geometry.coordinates[0][0][1],
-                ],
-              },
-              properties: { color: f.properties.color },
-            })),
-          };
-
-          map.addSource("geofences-centers-source", {
-            type: "geojson",
-            data: geofencesCentersData,
-          });
-
-          map.addLayer({
-            id: "geofences-centers-layer",
-            type: "circle",
-            source: "geofences-centers-source",
-            layout: { visibility: "none" },
-            paint: {
-              "circle-color": ["get", "color"],
-              "circle-radius": 4,
-              "circle-opacity": 0.9,
-              "circle-stroke-width": 1,
-              "circle-stroke-color": "#020617", // Slate 950 border for high contrast
-            },
-          });
-
-          // 6. DRAWN POLYGON (Manual Mapping)
-          map.addSource("drawn-polygon-source", {
-            type: "geojson",
-            data: { type: "FeatureCollection", features: [] }
-          });
-          map.addLayer({
-            id: "drawn-polygon-fill",
-            type: "fill",
-            source: "drawn-polygon-source",
-            paint: { "fill-color": "#4f46e5", "fill-opacity": 0.3 }
-          });
-          map.addLayer({
-            id: "drawn-polygon-line",
-            type: "line",
-            source: "drawn-polygon-source",
-            paint: { "line-color": "#4f46e5", "line-width": 2, "line-dasharray": [2, 2] }
+            paint: { "line-color": ["get", "color"], "line-width": 1.5 },
           });
         } catch {
           // Source addition handled cleanly
@@ -302,7 +233,7 @@ export const MapCanvas = ({
 
       mapRef.current = map;
     } catch {
-      // Catch synchronous construction errors
+      // Catch synchronous construction errors (e.g. invalid token string format)
       setTimeout(() => {
         setUseFallback(true);
         if (onEngineResolved) onEngineResolved("leaflet");
@@ -315,7 +246,15 @@ export const MapCanvas = ({
         mapRef.current = null;
       }
     };
-  }, [token, defaultLat, defaultLon, defaultZoom, interactive, useFallback]);
+  }, [
+    token,
+    defaultLat,
+    defaultLon,
+    defaultZoom,
+    interactive,
+    useFallback,
+    onEngineResolved,
+  ]);
 
   // Sync layers visibility from MapEngine
   useEffect(() => {
@@ -327,26 +266,26 @@ export const MapCanvas = ({
 
       layers.forEach((layer) => {
         const visibility = layer.active ? "visible" : "none";
-
-        const toggleLayer = (layerId) => {
-          if (map.getLayer(layerId)) {
-            map.setLayoutProperty(layerId, "visibility", visibility);
-          }
-        };
-
         if (layer.id === "sar_slick") {
-          toggleLayer("sar_slick-fill");
-          toggleLayer("sar_slick-outline");
+          if (map.getLayer("sar_slick-fill"))
+            map.setLayoutProperty("sar_slick-fill", "visibility", visibility);
+          if (map.getLayer("sar_slick-outline"))
+            map.setLayoutProperty(
+              "sar_slick-outline",
+              "visibility",
+              visibility,
+            );
         } else if (layer.id === "hindcast") {
-          toggleLayer("hindcast-points");
+          if (map.getLayer("hindcast-points"))
+            map.setLayoutProperty("hindcast-points", "visibility", visibility);
         } else if (layer.id === "ais_tracks") {
-          toggleLayer("ais_tracks-line");
+          if (map.getLayer("ais_tracks-line"))
+            map.setLayoutProperty("ais_tracks-line", "visibility", visibility);
         } else if (layer.id === "geofences") {
-          // Toggle all geofence sub-layers including the new hotspot centers
-          toggleLayer("geofences-fill");
-          toggleLayer("geofences-line-watch");
-          toggleLayer("geofences-line-critical");
-          toggleLayer("geofences-centers-layer");
+          if (map.getLayer("geofences-line"))
+            map.setLayoutProperty("geofences-line", "visibility", visibility);
+          if (map.getLayer("geofences-fill"))
+            map.setLayoutProperty("geofences-fill", "visibility", visibility);
         }
       });
     };
@@ -359,104 +298,6 @@ export const MapCanvas = ({
     };
   }, [layers]);
 
-  // Handle Map Drawing Interactions
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const map = mapRef.current;
-
-    const handleClick = (e) => {
-      const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed) {
-        const newPoint = [e.lngLat.lng, e.lngLat.lat];
-        
-        // Auto-close if clicked near the first vertex
-        if (drawnPolygon.length >= 3) {
-          const firstPoint = drawnPolygon[0];
-          const dist = turf.distance(turf.point(firstPoint), turf.point(newPoint), { units: 'kilometers' });
-          
-          if (dist < 50) { // 50km tolerance
-            setIsPolygonClosed(true);
-            setCursorCoordinate(null);
-            return;
-          }
-        }
-        addPolygonVertex(newPoint);
-      }
-    };
-
-    const handleMouseMove = (e) => {
-      const { interactionMode, isPolygonClosed } = stateRef.current;
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed) {
-        setCursorCoordinate([e.lngLat.lng, e.lngLat.lat]);
-      }
-    };
-
-    const handleDblClick = (e) => {
-      const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed && drawnPolygon.length >= 3) {
-        e.preventDefault();
-        setIsPolygonClosed(true);
-        setCursorCoordinate(null);
-      }
-    };
-
-    map.on('click', handleClick);
-    map.on('mousemove', handleMouseMove);
-    map.on('dblclick', handleDblClick);
-
-    return () => {
-      map.off('click', handleClick);
-      map.off('mousemove', handleMouseMove);
-      map.off('dblclick', handleDblClick);
-    };
-  }, [addPolygonVertex, setCursorCoordinate, setIsPolygonClosed]);
-
-  // Render Drawn Polygon
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const map = mapRef.current;
-    
-    const updateDrawnPolygon = () => {
-      if (!map.isStyleLoaded()) return;
-      const source = map.getSource("drawn-polygon-source");
-      if (!source) return;
-
-      let coordinates = [...drawnPolygon];
-      if (interactionMode === 'draw_polygon' && !isPolygonClosed && cursorCoordinate) {
-        coordinates.push(cursorCoordinate);
-      }
-      
-      if (coordinates.length > 0) {
-        if (coordinates.length < 3) {
-          // Draw as a line
-          source.setData({
-            type: "Feature",
-            geometry: { type: "LineString", coordinates }
-          });
-        } else {
-          // Draw as a polygon, must be closed ring
-          const polyCoords = [...coordinates];
-          polyCoords.push(polyCoords[0]);
-          source.setData({
-            type: "Feature",
-            geometry: { type: "Polygon", coordinates: [polyCoords] }
-          });
-        }
-      } else {
-        source.setData({ type: "FeatureCollection", features: [] });
-      }
-    };
-
-    // Update immediately
-    updateDrawnPolygon();
-    
-    // And update on style load just in case
-    map.on("styledata", updateDrawnPolygon);
-    return () => {
-      map.off("styledata", updateDrawnPolygon);
-    };
-  }, [drawnPolygon, cursorCoordinate, isPolygonClosed, interactionMode]);
-
   useEffect(() => {
     if (mapRef.current && panToCoordinate?.lat && panToCoordinate?.lon) {
       mapRef.current.flyTo({
@@ -467,27 +308,95 @@ export const MapCanvas = ({
     }
   }, [panToCoordinate]);
 
-  // Handle correlationMarker for Mapbox engine
+  // Fly to selected vessel
   useEffect(() => {
-    if (!mapRef.current || !correlationMarker?.lat || !correlationMarker?.lon)
-      return;
+    if (!mapRef.current || useFallback) return;
 
-    if (markerRef.current) {
-      markerRef.current.remove();
+    if (selectedVesselId && commercialFleet.length > 0) {
+      const vessel = commercialFleet.find((v) => v.id === selectedVesselId);
+      if (vessel && vessel.lat !== undefined && vessel.lon !== undefined) {
+        mapRef.current.flyTo({
+          center: [vessel.lon, vessel.lat],
+          zoom: 9,
+          duration: 1500,
+          essential: true,
+        });
+      }
     }
+  }, [selectedVesselId, commercialFleet, useFallback]);
 
-    markerRef.current = new mapboxgl.Marker({ color: "#f43f5e" })
-      .setLngLat([correlationMarker.lon, correlationMarker.lat])
-      .addTo(mapRef.current);
+  // Commercial Fleet Markers
+  const fleetMarkersRef = useRef({});
 
-    return () => {
-      if (markerRef.current) {
-        markerRef.current.remove();
-        markerRef.current = null;
+  useEffect(() => {
+    if (!mapRef.current || useFallback) return;
+
+    // Clear old markers
+    Object.values(fleetMarkersRef.current).forEach((marker) => marker.remove());
+    fleetMarkersRef.current = {};
+
+    commercialFleet.forEach((vessel) => {
+      const el = document.createElement("div");
+      el.className =
+        "w-5 h-5 bg-cyan-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold";
+      el.style.boxShadow = "0 0 12px rgba(6,182,212,0.8)";
+      el.style.transform = `rotate(${vessel.heading || 0}deg)`;
+      el.innerHTML = "↑";
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([vessel.lon, vessel.lat])
+        .addTo(mapRef.current);
+
+      fleetMarkersRef.current[vessel.id] = marker;
+    });
+  }, [commercialFleet, useFallback]);
+
+  // Diversion Route Update
+  useEffect(() => {
+    if (!mapRef.current || useFallback) return;
+
+    const updateRoute = () => {
+      if (!mapRef.current.isStyleLoaded()) return;
+      const source = mapRef.current.getSource("diversion-source");
+      if (!source) return;
+
+      if (showDiversionRoute && selectedVesselId) {
+        const vessel = commercialFleet.find((v) => v.id === selectedVesselId);
+        if (vessel) {
+          const coords = [
+            [vessel.lon, vessel.lat],
+            [vessel.lon + 0.5, vessel.lat + 0.8],
+            [vessel.lon + 1.2, vessel.lat + 0.9],
+          ];
+          source.setData({
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: coords },
+          });
+          mapRef.current.setLayoutProperty(
+            "diversion-line",
+            "visibility",
+            "visible",
+          );
+        }
+      } else {
+        mapRef.current.setLayoutProperty(
+          "diversion-line",
+          "visibility",
+          "none",
+        );
       }
     };
-  }, [correlationMarker]);
 
+    updateRoute();
+    mapRef.current.on("styledata", updateRoute);
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.off("styledata", updateRoute);
+      }
+    };
+  }, [showDiversionRoute, selectedVesselId, commercialFleet, useFallback]);
+
+  // If fallback is triggered, mount FallbackLeaflet silently
   if (useFallback) {
     return (
       <FallbackLeaflet
@@ -497,7 +406,9 @@ export const MapCanvas = ({
         className={className}
         panToCoordinate={panToCoordinate}
         correlationMarker={correlationMarker}
-        layers={layers}
+        commercialFleet={commercialFleet}
+        selectedVesselId={selectedVesselId}
+        showDiversionRoute={showDiversionRoute}
       />
     );
   }

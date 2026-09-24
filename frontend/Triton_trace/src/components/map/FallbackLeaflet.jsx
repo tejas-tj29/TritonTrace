@@ -1,13 +1,15 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useRef } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import geofencesData from "../../data/regional_alert_geofences.json";
 
 // Fix Leaflet asset path resolution for bundlers
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
 /**
@@ -16,12 +18,15 @@ L.Icon.Default.mergeOptions({
  * Uses CartoDB Dark Matter tiles for a tactical intelligence appearance.
  */
 export const FallbackLeaflet = ({
-  center = [31.350, 31.685], // Leaflet uses [Latitude, Longitude]
+  center = [31.35, 31.685], // Leaflet uses [Latitude, Longitude]
   zoom = 5.5,
   interactive = true,
-  className = '',
+  className = "",
   panToCoordinate,
-  correlationMarker
+  correlationMarker,
+  commercialFleet = [],
+  selectedVesselId = null,
+  showDiversionRoute = false,
 }) => {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -47,24 +52,30 @@ export const FallbackLeaflet = ({
         scrollWheelZoom: interactive,
         doubleClickZoom: interactive,
         boxZoom: interactive,
-        keyboard: interactive
+        keyboard: interactive,
       });
 
       // CartoDB Dark Matter tile layer
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
-      }).addTo(map);
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          subdomains: "abcd",
+          maxZoom: 19,
+        },
+      ).addTo(map);
 
       // Attribution control in discreet corner
-      L.control.attribution({
-        position: 'bottomright',
-        prefix: false
-      }).addTo(map);
+      L.control
+        .attribution({
+          position: "bottomright",
+          prefix: false,
+        })
+        .addTo(map);
 
       if (interactive) {
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.zoom({ position: "bottomright" }).addTo(map);
       }
 
       // Incident Slick Polygon for Med-Spill-017 centered at Lat 32.5, Lon 33.1
@@ -73,56 +84,71 @@ export const FallbackLeaflet = ({
         [32.51, 33.15],
         [32.48, 33.25],
         [32.45, 33.28],
-        [32.47, 33.20],
-        [32.50, 33.08],
-        [32.52, 33.05]
+        [32.47, 33.2],
+        [32.5, 33.08],
+        [32.52, 33.05],
       ];
 
       L.polygon(slickCoords, {
-        color: '#22d3ee',
+        color: "#22d3ee",
         weight: 2,
-        fillColor: '#22d3ee',
+        fillColor: "#22d3ee",
         fillOpacity: 0.25,
-        dashArray: '4, 4'
+        dashArray: "4, 4",
       }).addTo(map);
 
       // Hindcast Origin Uncertainty Circle (1.8km radius)
       L.circle([32.35, 32.92], {
         radius: 1800,
-        color: '#34d399',
+        color: "#34d399",
         weight: 1.5,
-        fillColor: '#34d399',
+        fillColor: "#34d399",
         fillOpacity: 0.15,
-        dashArray: '3, 3'
+        dashArray: "3, 3",
       }).addTo(map);
 
       // Discharge drift vector line (from origin to slick)
-      L.polyline([
-        [32.35, 32.92],
-        [32.50, 33.10]
-      ], {
-        color: '#34d399',
-        weight: 1.5,
-        dashArray: '5, 5',
-        opacity: 0.6
-      }).addTo(map);
+      L.polyline(
+        [
+          [32.35, 32.92],
+          [32.5, 33.1],
+        ],
+        {
+          color: "#34d399",
+          weight: 1.5,
+          dashArray: "5, 5",
+          opacity: 0.6,
+        },
+      ).addTo(map);
 
       // Target slick marker
-      L.circleMarker([32.50, 33.10], {
+      L.circleMarker([32.5, 33.1], {
         radius: 6,
-        color: '#22d3ee',
-        fillColor: '#0891b2',
+        color: "#22d3ee",
+        fillColor: "#0891b2",
         fillOpacity: 0.9,
-        weight: 2
+        weight: 2,
       }).addTo(map);
 
       // AIS Correlated Vessel (Pacific Horizon)
       L.circleMarker([32.36, 32.93], {
         radius: 5,
-        color: '#f43f5e',
-        fillColor: '#f43f5e',
+        color: "#f43f5e",
+        fillColor: "#f43f5e",
         fillOpacity: 0.9,
-        weight: 1.5
+        weight: 1.5,
+      }).addTo(map);
+
+      // REGIONAL GEOFENCES
+      L.geoJSON(geofencesData, {
+        style: function (feature) {
+          return {
+            color: feature.properties.color,
+            fillColor: feature.properties.color,
+            fillOpacity: 0.2,
+            weight: 1.5,
+          };
+        },
       }).addTo(map);
 
       mapRef.current = map;
@@ -137,7 +163,7 @@ export const FallbackLeaflet = ({
       return () => clearTimeout(timer);
     } catch (err) {
       // Suppress console-breaking errors per PRD requirements
-      console.warn('FallbackLeaflet initialization error handled:', err);
+      console.warn("FallbackLeaflet initialization error handled:", err);
     }
 
     return () => {
@@ -159,10 +185,25 @@ export const FallbackLeaflet = ({
   useEffect(() => {
     if (mapRef.current && panToCoordinate?.lat && panToCoordinate?.lon) {
       mapRef.current.flyTo([panToCoordinate.lat, panToCoordinate.lon], 7.5, {
-        duration: 1.2
+        duration: 1.2,
       });
     }
   }, [panToCoordinate]);
+
+  // Fly to selected vessel
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (selectedVesselId && commercialFleet.length > 0) {
+      const vessel = commercialFleet.find((v) => v.id === selectedVesselId);
+      if (vessel && vessel.lat !== undefined && vessel.lon !== undefined) {
+        mapRef.current.flyTo([vessel.lat, vessel.lon], 9, {
+          animate: true,
+          duration: 1.5,
+        });
+      }
+    }
+  }, [selectedVesselId, commercialFleet]);
 
   // Render or remove AIS Intersect target marker
   useEffect(() => {
@@ -176,21 +217,73 @@ export const FallbackLeaflet = ({
       const lat = correlationMarker[1];
       const lon = correlationMarker[0];
       const targetIcon = L.divIcon({
-        className: 'custom-crosshair-marker',
+        className: "custom-crosshair-marker",
         html: `<div style="width:24px;height:24px;border:2px solid #f43f5e;border-radius:50%;background:rgba(244,63,94,0.25);box-shadow:0 0 12px #f43f5e;display:flex;align-items:center;justify-content:center;animation:pulse 1.5s infinite;">
                  <div style="width:6px;height:6px;background:#f43f5e;border-radius:50%;"></div>
                </div>`,
         iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        iconAnchor: [12, 12],
       });
-      correlationMarkerRef.current = L.marker([lat, lon], { icon: targetIcon }).addTo(mapRef.current);
+      correlationMarkerRef.current = L.marker([lat, lon], {
+        icon: targetIcon,
+      }).addTo(mapRef.current);
     }
   }, [correlationMarker]);
 
+  // Commercial Fleet Markers
+  const fleetMarkersRef = useRef({});
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    Object.values(fleetMarkersRef.current).forEach((marker) => marker.remove());
+    fleetMarkersRef.current = {};
+
+    commercialFleet.forEach((vessel) => {
+      const icon = L.divIcon({
+        className: "custom-fleet-marker",
+        html: `<div class="w-5 h-5 bg-cyan-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold" style="box-shadow: 0 0 12px rgba(6,182,212,0.8); transform: rotate(${vessel.heading || 0}deg);">↑</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+      fleetMarkersRef.current[vessel.id] = L.marker([vessel.lat, vessel.lon], {
+        icon,
+      }).addTo(mapRef.current);
+    });
+  }, [commercialFleet]);
+
+  // Diversion Route Update
+  const diversionRouteRef = useRef(null);
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (diversionRouteRef.current) {
+      diversionRouteRef.current.remove();
+      diversionRouteRef.current = null;
+    }
+
+    if (showDiversionRoute && selectedVesselId) {
+      const vessel = commercialFleet.find((v) => v.id === selectedVesselId);
+      if (vessel) {
+        // Curve north from vessel location
+        const coords = [
+          [vessel.lat, vessel.lon],
+          [vessel.lat + 0.8, vessel.lon + 0.5],
+          [vessel.lat + 0.9, vessel.lon + 1.2],
+        ];
+        diversionRouteRef.current = L.polyline(coords, {
+          color: "#10b981",
+          weight: 3,
+          dashArray: "5, 10",
+        }).addTo(mapRef.current);
+      }
+    }
+  }, [showDiversionRoute, selectedVesselId, commercialFleet]);
+
   return (
-    <div className={`relative h-full w-full select-none overflow-hidden bg-slate-950 ${className}`}>
+    <div
+      className={`relative h-full w-full select-none overflow-hidden bg-slate-950 ${className}`}
+    >
       <div ref={containerRef} className="h-full w-full" />
-      
+
       {/* Tactical Engine Indicator */}
       <div className="pointer-events-none absolute bottom-3 left-3 z-[400] flex items-center space-x-1.5 rounded border border-slate-800 bg-slate-950/85 px-2.5 py-1 font-mono text-[10px] text-slate-400 backdrop-blur-md">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />

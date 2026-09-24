@@ -16,6 +16,7 @@
     "@turf/turf": "^7.4.0",
     "clsx": "^2.1.1",
     "deck.gl": "^9.4.0",
+    "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.47.0",
     "mapbox-gl": "^3.31.0",
