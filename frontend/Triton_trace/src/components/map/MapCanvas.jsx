@@ -155,6 +155,13 @@ export const MapCanvas = ({
             }
           });
           map.addLayer({
+            id: 'geofences-fill',
+            type: 'fill',
+            source: 'geofences-source',
+            layout: { visibility: 'none' },
+            paint: { 'fill-color': '#10b981', 'fill-opacity': 0.1 }
+          });
+          map.addLayer({
             id: 'geofences-line',
             type: 'line',
             source: 'geofences-source',
@@ -202,6 +209,7 @@ export const MapCanvas = ({
         } else if (layer.id === 'ais_tracks') {
           if (map.getLayer('ais_tracks-line')) map.setLayoutProperty('ais_tracks-line', 'visibility', visibility);
         } else if (layer.id === 'geofences') {
+          if (map.getLayer('geofences-fill')) map.setLayoutProperty('geofences-fill', 'visibility', visibility);
           if (map.getLayer('geofences-line')) map.setLayoutProperty('geofences-line', 'visibility', visibility);
         }
       });
