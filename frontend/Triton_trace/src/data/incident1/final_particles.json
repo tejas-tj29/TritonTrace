@@ -1,0 +1,29 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [35.00885422, 34.41558903]
+      },
+      "properties": {
+        "particle_id": 0,
+        "forcing_member_id": 0,
+        "timestamp": "2019-06-11 20:35:58"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [35.04934186, 34.33615477]
+      },
+      "properties": {
+        "particle_id": 0,
+        "forcing_member_id": 1,
+        "timestamp": "2019-06-11 20:35:58"
+      }
+    }
+  ]
+}

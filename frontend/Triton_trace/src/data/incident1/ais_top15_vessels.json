@@ -1,0 +1,43 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [35.270838, 34.148327]
+      },
+      "properties": {
+        "rank": 1,
+        "vessel_name": "MV NAVIGATOR F26",
+        "mmsi": "211317341",
+        "imo": "9956355",
+        "vessel_type": "LNG Carrier",
+        "ais5_score": 0.571872,
+        "min_sync_dist_km": 0.9341,
+        "ais_coverage_fraction": 0.4305,
+        "timestamp": "2019-06-14 04:35:58",
+        "notes": "32 AIS observations total; 31/72 candidate timestamps have an exact-time AIS report."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [35.394795, 34.096816]
+      },
+      "properties": {
+        "rank": 2,
+        "vessel_name": "SEASPAN OASIS I44",
+        "mmsi": "352878610",
+        "imo": "9276786",
+        "vessel_type": "LNG Carrier",
+        "ais5_score": 0.316505,
+        "min_sync_dist_km": 11.5041,
+        "ais_coverage_fraction": 1.0,
+        "timestamp": "2019-06-14 10:35:58",
+        "notes": "73 AIS observations total; 72/72 candidate timestamps have an exact-time AIS report."
+      }
+    }
+  ]
+}
