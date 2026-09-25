@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import geofencesData from "../../utils/regional_alert_geofences.json";
+import { useIncident } from "../../context/IncidentContext";
 
 // Fix Leaflet asset path resolution for bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -31,6 +32,20 @@ export const FallbackLeaflet = ({
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const correlationMarkerRef = useRef(null);
+  const {
+    interactionMode,
+    drawnPolygon,
+    addPolygonVertex,
+    cursorCoordinate,
+    setCursorCoordinate,
+    isPolygonClosed,
+    setIsPolygonClosed,
+    setPickedCoordinate,
+  } = useIncident();
+  const stateRef = useRef({ interactionMode, drawnPolygon, isPolygonClosed });
+  useEffect(() => {
+    stateRef.current = { interactionMode, drawnPolygon, isPolygonClosed };
+  }, [interactionMode, drawnPolygon, isPolygonClosed]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -165,6 +180,54 @@ export const FallbackLeaflet = ({
 
       mapRef.current = map;
 
+      // Handle map clicks for picking and drawing
+      map.on("click", (e) => {
+        const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
+        
+        if (interactionMode === "pick_coordinate") {
+          setPickedCoordinate({ lat: e.latlng.lat, lon: e.latlng.lng });
+          return;
+        }
+
+        if (interactionMode === "draw_polygon" && !isPolygonClosed) {
+          const newPoint = [e.latlng.lng, e.latlng.lat];
+
+          if (drawnPolygon.length >= 3) {
+            const firstPoint = drawnPolygon[0];
+            // Approximate distance in km using Leaflet's built-in distance method (returns meters)
+            const firstLatLng = L.latLng(firstPoint[1], firstPoint[0]);
+            const dist = firstLatLng.distanceTo(e.latlng) / 1000;
+
+            if (dist < 50) {
+              setIsPolygonClosed(true);
+              setCursorCoordinate(null);
+              return;
+            }
+          }
+          addPolygonVertex(newPoint);
+        }
+      });
+
+      map.on("mousemove", (e) => {
+        const { interactionMode, isPolygonClosed } = stateRef.current;
+        if (interactionMode === "draw_polygon" && !isPolygonClosed) {
+          setCursorCoordinate([e.latlng.lng, e.latlng.lat]);
+        }
+      });
+
+      map.on("dblclick", (e) => {
+        const { interactionMode, drawnPolygon, isPolygonClosed } = stateRef.current;
+        if (
+          interactionMode === "draw_polygon" &&
+          !isPolygonClosed &&
+          drawnPolygon.length >= 3
+        ) {
+          // Prevent Leaflet double click zoom
+          setIsPolygonClosed(true);
+          setCursorCoordinate(null);
+        }
+      });
+
       // Invalidate size to guarantee crisp tile alignment
       const timer = setTimeout(() => {
         if (mapRef.current) {
@@ -286,6 +349,48 @@ export const FallbackLeaflet = ({
       }
     }
   }, [showDiversionRoute, selectedVesselId, commercialFleet]);
+
+  // Render Drawn Polygon
+  const drawnPolygonRef = useRef(null);
+  const cursorLineRef = useRef(null);
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    if (drawnPolygonRef.current) {
+      drawnPolygonRef.current.remove();
+      drawnPolygonRef.current = null;
+    }
+    if (cursorLineRef.current) {
+      cursorLineRef.current.remove();
+      cursorLineRef.current = null;
+    }
+
+    if (drawnPolygon.length > 0) {
+      const latlngs = drawnPolygon.map(p => [p[1], p[0]]); // [lat, lon]
+      
+      if (drawnPolygon.length < 3 || (!isPolygonClosed && interactionMode === "draw_polygon")) {
+        // Draw as polyline
+        const lineCoords = [...latlngs];
+        if (!isPolygonClosed && cursorCoordinate) {
+          lineCoords.push([cursorCoordinate[1], cursorCoordinate[0]]);
+        }
+        drawnPolygonRef.current = L.polyline(lineCoords, {
+          color: "#4f46e5",
+          weight: 2,
+          dashArray: "4, 4"
+        }).addTo(mapRef.current);
+      } else {
+        // Draw as polygon
+        drawnPolygonRef.current = L.polygon(latlngs, {
+          color: "#4f46e5",
+          weight: 2,
+          fillColor: "#4f46e5",
+          fillOpacity: 0.3,
+          dashArray: "4, 4"
+        }).addTo(mapRef.current);
+      }
+    }
+  }, [drawnPolygon, cursorCoordinate, isPolygonClosed, interactionMode]);
 
   return (
     <div

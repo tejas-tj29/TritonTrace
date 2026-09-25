@@ -18,6 +18,7 @@ export const IncidentReportForm = () => {
     setPickedCoordinate,
     setPanToCoordinate,
   } = useIncident();
+  const [severity, setSeverity] = useState("Moderate");
   const [notes, setNotes] = useState("");
   const [toast, setToast] = useState("");
   const [isDetecting, setIsDetecting] = useState(false);
@@ -100,6 +101,7 @@ export const IncidentReportForm = () => {
     const report = reportService.createReport({
       lat: pickedCoordinate.lat,
       lon: pickedCoordinate.lon,
+      severity,
       notes,
       evidenceImage,
     });
@@ -164,6 +166,29 @@ export const IncidentReportForm = () => {
               {pickedCoordinate.lon.toFixed(4)}
             </div>
           )}
+        </div>
+
+        {/* Severity Section */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[10px] font-bold text-slate-500 tracking-wider">
+            SEVERITY
+          </label>
+          <div className="flex gap-2">
+            {["Minor", "Moderate", "Major"].map((sev) => (
+              <button
+                type="button"
+                key={sev}
+                onClick={() => setSeverity(sev)}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md border shadow-sm transition-colors ${
+                  severity === sev
+                    ? "bg-brand-600 text-white border-brand-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {sev.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Evidence Section */}

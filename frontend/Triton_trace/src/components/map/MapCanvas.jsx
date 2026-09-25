@@ -6,11 +6,6 @@ import { useIncident } from "../../context/IncidentContext";
 import geofencesData from "../../utils/regional_alert_geofences.json";
 import * as turf from "@turf/turf";
 
-/**
- * MapCanvas Component
- * Attempts to initialize Mapbox GL with mapbox://styles/mapbox/dark-v11 using [Longitude, Latitude].
- * If VITE_MAPBOX_ACCESS_TOKEN is missing or initialization fails, silently mounts FallbackLeaflet.
- */
 export const MapCanvas = ({
   interactive = true,
   className = "",
@@ -20,7 +15,6 @@ export const MapCanvas = ({
   selectedVesselId = null,
   showDiversionRoute = false,
 }) => {
-  // Read environment configuration with explicit numeric casting per PRD 6.2
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   const defaultLat = Number(import.meta.env.VITE_DEFAULT_LAT) || 31.35;
   const defaultLon = Number(import.meta.env.VITE_DEFAULT_LON) || 31.685;
@@ -36,6 +30,8 @@ export const MapCanvas = ({
     setCursorCoordinate,
     isPolygonClosed,
     setIsPolygonClosed,
+    pickedCoordinate,
+    setPickedCoordinate,
   } = useIncident();
 
   const initialViewState = {
@@ -70,7 +66,7 @@ export const MapCanvas = ({
         properties: {
           id: vessel.id,
           name: vessel.name,
-          heading: vessel.heading || 0, // Ensure a fallback
+          heading: vessel.heading || 0,
           type: vessel.type || "Unknown",
         },
         geometry: {
@@ -81,38 +77,40 @@ export const MapCanvas = ({
     };
   }, [commercialFleet]);
 
-  // Target AOI Bounding Box: Longitude 18.37°E to 45.0°E, Latitude 25.0°N to 37.7°N
   const aoiMaxBounds = [
-    [18.37, 25.0], // Southwest [lng, lat]
-    [45.0, 37.7], // Northeast [lng, lat]
+    [18.37, 25.0],
+    [45.0, 37.7],
   ];
 
-  // Check token and WebGL support at initial state to avoid setState inside effect
   const [useFallback, setUseFallback] = useState(() => {
     if (!token || token.trim() === "") return true;
     if (!mapboxgl.supported || !mapboxgl.supported()) return true;
     return false;
   });
+
   const containerRef = useRef(null);
   const mapRef = useRef(null);
 
-  // State ref for event handlers to access latest state without rebinding
+  // Create a ref for onEngineResolved to prevent infinite re-renders
+  const engineResolvedRef = useRef(onEngineResolved);
+  useEffect(() => {
+    engineResolvedRef.current = onEngineResolved;
+  }, [onEngineResolved]);
+
   const stateRef = useRef({ interactionMode, drawnPolygon, isPolygonClosed });
   useEffect(() => {
     stateRef.current = { interactionMode, drawnPolygon, isPolygonClosed };
   }, [interactionMode, drawnPolygon, isPolygonClosed]);
 
   useEffect(() => {
-    // If fallback is already active, notify engine resolution and return
     if (useFallback) {
-      if (onEngineResolved) onEngineResolved("leaflet");
+      if (engineResolvedRef.current) engineResolvedRef.current("leaflet");
       return;
     }
 
     try {
       mapboxgl.accessToken = token;
 
-      // Mapbox GL coordinate format is [Longitude, Latitude]
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/dark-v11",
@@ -123,9 +121,7 @@ export const MapCanvas = ({
         attributionControl: false,
       });
 
-      // Catch asynchronous token authorization, style loading, or WebGL tile errors
       map.on("error", (e) => {
-        // Prevent console pollution and gracefully fallback
         if (
           e &&
           e.error &&
@@ -134,15 +130,15 @@ export const MapCanvas = ({
             e.error.message?.includes("token"))
         ) {
           setUseFallback(true);
-          if (onEngineResolved) onEngineResolved("leaflet");
+          if (engineResolvedRef.current) engineResolvedRef.current("leaflet");
         }
       });
 
       map.on("load", () => {
-        if (onEngineResolved) onEngineResolved("mapbox");
+        if (engineResolvedRef.current) engineResolvedRef.current("mapbox");
 
         try {
-          // 1. SAR SLICK (Using existing coordinates)
+          // 1. SAR SLICK
           map.addSource("sar_slick-source", {
             type: "geojson",
             data: {
@@ -168,7 +164,7 @@ export const MapCanvas = ({
             id: "sar_slick-fill",
             type: "fill",
             source: "sar_slick-source",
-            layout: { visibility: "none" }, // will be set by useEffect
+            layout: { visibility: "none" },
             paint: { "fill-color": "#22d3ee", "fill-opacity": 0.3 },
           });
           map.addLayer({
@@ -196,18 +192,6 @@ export const MapCanvas = ({
                 {
                   type: "Feature",
                   geometry: { type: "Point", coordinates: [33.12, 32.51] },
-                },
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.15, 32.49] },
-                },
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.08, 32.48] },
-                },
-                {
-                  type: "Feature",
-                  geometry: { type: "Point", coordinates: [33.2, 32.46] },
                 },
               ],
             },
@@ -254,8 +238,8 @@ export const MapCanvas = ({
             type: "symbol",
             source: "live-vessels-source",
             layout: {
-              "text-field": "▲", // Up-pointing triangle points North at 0 degrees
-              "text-rotate": ["get", "heading"], // Rotates based on ship's real heading
+              "text-field": "▲",
+              "text-rotate": ["get", "heading"],
               "text-size": 18,
               "text-allow-overlap": true,
               "text-ignore-placement": true,
@@ -266,24 +250,14 @@ export const MapCanvas = ({
                 "match",
                 ["get", "type"],
                 "Crude Oil Tanker",
-                "#ef4444", // Red
+                "#ef4444",
                 "Chemical Tanker",
-                "#f97316", // Orange
+                "#f97316",
                 "LNG Carrier",
-                "#eab308", // Yellow
-                "Product Tanker",
-                "#ec4899", // Pink
-                "Bulk Carrier",
-                "#3b82f6", // Blue
-                "Container Ship",
-                "#8b5cf6", // Purple
-                "General Cargo",
-                "#14b8a6", // Teal
-                "Fishing",
-                "#22c55e", // Green
-                "#ffffff", // Default White
+                "#eab308",
+                "#ffffff",
               ],
-              "text-halo-color": "#1e293b", // Dark slate outline for contrast
+              "text-halo-color": "#1e293b",
               "text-halo-width": 1.5,
             },
           });
@@ -354,10 +328,9 @@ export const MapCanvas = ({
 
       mapRef.current = map;
     } catch {
-      // Catch synchronous construction errors (e.g. invalid token string format)
       setTimeout(() => {
         setUseFallback(true);
-        if (onEngineResolved) onEngineResolved("leaflet");
+        if (engineResolvedRef.current) engineResolvedRef.current("leaflet");
       }, 0);
     }
 
@@ -367,16 +340,8 @@ export const MapCanvas = ({
         mapRef.current = null;
       }
     };
-  }, [
-    token,
-    defaultLat,
-    defaultLon,
-    defaultZoom,
-    interactive,
-    useFallback,
-    onEngineResolved,
-    // intentional: we don't put vesselTracksGeoJSON here so it doesn't re-init the whole map
-  ]);
+    // CRITICAL FIX: Removed onEngineResolved to prevent infinite re-renders
+  }, [token, defaultLat, defaultLon, defaultZoom, interactive, useFallback]);
 
   // Sync vessel trajectories and live vessels
   useEffect(() => {
@@ -386,14 +351,12 @@ export const MapCanvas = ({
     const updateSources = () => {
       if (!map.isStyleLoaded()) return;
       const trackSource = map.getSource("ais_tracks-source");
-      if (trackSource && vesselTracksGeoJSON) {
+      if (trackSource && vesselTracksGeoJSON)
         trackSource.setData(vesselTracksGeoJSON);
-      }
 
       const pointSource = map.getSource("live-vessels-source");
-      if (pointSource && vesselPointsGeoJSON) {
+      if (pointSource && vesselPointsGeoJSON)
         pointSource.setData(vesselPointsGeoJSON);
-      }
     };
 
     updateSources();
@@ -439,10 +402,7 @@ export const MapCanvas = ({
 
     updateVisibility();
     map.on("styledata", updateVisibility);
-
-    return () => {
-      map.off("styledata", updateVisibility);
-    };
+    return () => map.off("styledata", updateVisibility);
   }, [layers]);
 
   // Handle Map Drawing Interactions
@@ -453,10 +413,14 @@ export const MapCanvas = ({
     const handleClick = (e) => {
       const { interactionMode, drawnPolygon, isPolygonClosed } =
         stateRef.current;
+
+      if (interactionMode === "pick_coordinate") {
+        setPickedCoordinate({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+        return;
+      }
+
       if (interactionMode === "draw_polygon" && !isPolygonClosed) {
         const newPoint = [e.lngLat.lng, e.lngLat.lat];
-
-        // Auto-close if clicked near the first vertex
         if (drawnPolygon.length >= 3) {
           const firstPoint = drawnPolygon[0];
           const dist = turf.distance(
@@ -464,9 +428,7 @@ export const MapCanvas = ({
             turf.point(newPoint),
             { units: "kilometers" },
           );
-
           if (dist < 50) {
-            // 50km tolerance
             setIsPolygonClosed(true);
             setCursorCoordinate(null);
             return;
@@ -506,7 +468,12 @@ export const MapCanvas = ({
       map.off("mousemove", handleMouseMove);
       map.off("dblclick", handleDblClick);
     };
-  }, [addPolygonVertex, setCursorCoordinate, setIsPolygonClosed]);
+  }, [
+    addPolygonVertex,
+    setCursorCoordinate,
+    setIsPolygonClosed,
+    setPickedCoordinate,
+  ]);
 
   // Render Drawn Polygon
   useEffect(() => {
@@ -529,13 +496,11 @@ export const MapCanvas = ({
 
       if (coordinates.length > 0) {
         if (coordinates.length < 3) {
-          // Draw as a line
           source.setData({
             type: "Feature",
             geometry: { type: "LineString", coordinates },
           });
         } else {
-          // Draw as a polygon, must be closed ring
           const polyCoords = [...coordinates];
           polyCoords.push(polyCoords[0]);
           source.setData({
@@ -548,44 +513,49 @@ export const MapCanvas = ({
       }
     };
 
-    // Update immediately
     updateDrawnPolygon();
-
-    // And update on style load just in case
     map.on("styledata", updateDrawnPolygon);
-    return () => {
-      map.off("styledata", updateDrawnPolygon);
-    };
+    return () => map.off("styledata", updateDrawnPolygon);
   }, [drawnPolygon, cursorCoordinate, isPolygonClosed, interactionMode]);
 
+  // Camera FlyTo logic (cleaned up duplicate block)
   useEffect(() => {
     if (mapRef.current && panToCoordinate?.lat && panToCoordinate?.lon) {
       mapRef.current.flyTo({
         center: [panToCoordinate.lon, panToCoordinate.lat],
-        zoom: 7.5,
+        zoom: 10, // Zoomed in closer so you can see the GPS selection clearly
         essential: true,
+        duration: 2000,
       });
     }
   }, [panToCoordinate]);
 
-  // Fly to selected vessel
+  // Handle Picked Coordinate Visual Marker
+  const pickedMarkerRef = useRef(null);
   useEffect(() => {
-    if (!mapRef.current || useFallback) return;
+    if (!mapRef.current) return;
 
-    if (selectedVesselId && commercialFleet.length > 0) {
-      const vessel = commercialFleet.find((v) => v.id === selectedVesselId);
-      if (vessel && vessel.lat !== undefined && vessel.lon !== undefined) {
-        mapRef.current.flyTo({
-          center: [vessel.lon, vessel.lat],
-          zoom: 9,
-          duration: 1500,
-          essential: true,
-        });
-      }
+    if (pickedMarkerRef.current) {
+      pickedMarkerRef.current.remove();
+      pickedMarkerRef.current = null;
     }
-  }, [selectedVesselId, commercialFleet, useFallback]);
 
-  // Diversion Route Update
+    if (pickedCoordinate?.lat && pickedCoordinate?.lon) {
+      // Creates a blue marker pin to show exactly where the user clicked/GPS locked
+      pickedMarkerRef.current = new mapboxgl.Marker({ color: "#0ea5e9" })
+        .setLngLat([pickedCoordinate.lon, pickedCoordinate.lat])
+        .addTo(mapRef.current);
+    }
+
+    return () => {
+      if (pickedMarkerRef.current) {
+        pickedMarkerRef.current.remove();
+        pickedMarkerRef.current = null;
+      }
+    };
+  }, [pickedCoordinate]);
+
+  // Handle Diversion Route
   useEffect(() => {
     if (!mapRef.current || useFallback) return;
 
@@ -613,24 +583,23 @@ export const MapCanvas = ({
           );
         }
       } else {
-        mapRef.current.setLayoutProperty(
-          "diversion-line",
-          "visibility",
-          "none",
-        );
+        if (mapRef.current.getLayer("diversion-line")) {
+          mapRef.current.setLayoutProperty(
+            "diversion-line",
+            "visibility",
+            "none",
+          );
+        }
       }
     };
 
     updateRoute();
     mapRef.current.on("styledata", updateRoute);
     return () => {
-      if (mapRef.current) {
-        mapRef.current.off("styledata", updateRoute);
-      }
+      if (mapRef.current) mapRef.current.off("styledata", updateRoute);
     };
   }, [showDiversionRoute, selectedVesselId, commercialFleet, useFallback]);
 
-  // If fallback is triggered, mount FallbackLeaflet silently
   if (useFallback) {
     return (
       <FallbackLeaflet
@@ -652,7 +621,6 @@ export const MapCanvas = ({
       className={`relative h-full w-full select-none overflow-hidden bg-slate-950 ${className}`}
     >
       <div ref={containerRef} className="h-full w-full" />
-      {/* Mapbox active engine badge */}
       <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center space-x-1.5 rounded border border-slate-800 bg-slate-950/85 px-2.5 py-1 font-mono text-[10px] text-slate-400 backdrop-blur-md">
         <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
         <span>MAP ENGINE: MAPBOX GL (DARK-V11)</span>
