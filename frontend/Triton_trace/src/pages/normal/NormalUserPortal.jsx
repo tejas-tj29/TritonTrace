@@ -4,10 +4,28 @@ import { MapCanvas } from "../../components/map/MapCanvas"; // Assumes MapCanvas
 import { TopHUD } from "../../components/layout/TopHUD";
 import { PanelLeftOpen } from "lucide-react";
 import { mockIncident } from "../../utils/mockData";
+import { LayerControl } from "../../components/map/LayerControl";
+import { MapLegend } from "../../components/map/MapLegend";
+
+const INITIAL_LAYERS = [
+  { id: "sar_slick", label: "SAR Slick Polygons", active: true, color: "bg-cyan-500" },
+  { id: "hindcast", label: "Hindcast Particles", active: true, color: "bg-rose-500" },
+  { id: "ais_tracks", label: "AIS Vessel Tracks", active: true, color: "bg-amber-500" },
+  { id: "geofences", label: "Regional Alert Geofences", active: true, color: "bg-emerald-500" },
+];
 
 export const NormalUserPortal = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [engine, setEngine] = useState("leaflet");
+  const [layers, setLayers] = useState(INITIAL_LAYERS);
+
+  const toggleLayer = (id) => {
+    setLayers((prev) =>
+      prev.map((layer) =>
+        layer.id === id ? { ...layer, active: !layer.active } : layer
+      )
+    );
+  };
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -52,7 +70,13 @@ export const NormalUserPortal = () => {
           <MapCanvas
             interactive={true}
             onEngineResolved={(eng) => setEngine(eng)}
+            layers={layers}
           />
+
+          <div className="absolute top-4 right-4 z-20 flex flex-col gap-3">
+            <LayerControl layers={layers} toggleLayer={toggleLayer} />
+            <MapLegend />
+          </div>
         </div>
       </div>
     </div>
