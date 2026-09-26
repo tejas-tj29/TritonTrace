@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MapCanvas } from "./MapCanvas";
 import { LayerControl } from "./LayerControl";
 import { MapLegend } from "./MapLegend";
+import { useIncident } from "../../context/IncidentContext";
 
 const INITIAL_LAYERS = [
   {
@@ -19,7 +20,7 @@ const INITIAL_LAYERS = [
   {
     id: "ais_tracks",
     label: "AIS Vessel Tracks",
-    active: false,
+    active: true,
     color: "bg-amber-500",
   },
   {
@@ -32,6 +33,7 @@ const INITIAL_LAYERS = [
 
 export const MapEngine = ({ onEngineResolved, interactive = true }) => {
   const [layers, setLayers] = useState(INITIAL_LAYERS);
+  const { incidentVesselFleet } = useIncident();
 
   const toggleLayer = (id) => {
     setLayers((prev) =>
@@ -47,6 +49,7 @@ export const MapEngine = ({ onEngineResolved, interactive = true }) => {
         interactive={interactive}
         onEngineResolved={onEngineResolved}
         layers={layers}
+        commercialFleet={incidentVesselFleet}
       />
 
       {/* Shared Floating Map UI */}

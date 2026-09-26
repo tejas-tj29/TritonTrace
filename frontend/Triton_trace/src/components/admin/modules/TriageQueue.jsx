@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useIncident } from "../../../context/IncidentContext";
-import { mockHistoricalIncidents } from "../../../utils/mockData";
+import { seedIncidents } from "../../../data/seedIncidents";
 import { DossierModal } from "./DossierModal";
 import {
   ShieldCheck,
@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 
 // Import our standalone tool panels
-import { HindcastController } from "./HindcastController";
+import { SourceAttributionPanel } from "./SourceAttributionPanel";
 import { AisCorrelationMatrix } from "./AisCorrelationMatrix";
+import { ClusterOriginMatrix } from "./ClusterOriginMatrix";
 import { ForwardTrackPanel } from "./ForwardTrackPanel";
 
 export const TriageQueue = () => {
@@ -23,11 +24,13 @@ export const TriageQueue = () => {
     setPanToCoordinate,
     setActiveAnalysisMode,
     activeAnalysisMode,
+    attributionView,
+    setAttributionView,
   } = useIncident();
   const [isDossierOpen, setIsDossierOpen] = useState(false);
 
   useEffect(() => {
-    const formattedReports = mockHistoricalIncidents.map((inc) => ({
+    const formattedReports = seedIncidents.map((inc) => ({
       id: inc.incident_id,
       createdAt: inc.detection_timestamp,
       status:
@@ -163,9 +166,37 @@ export const TriageQueue = () => {
                           ATTRIBUTION SUITE ACTIVE
                         </span>
                       </div>
-                      <HindcastController />
+                      <SourceAttributionPanel incidentId={report.id} />
+
+                      <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-md">
+                        <button
+                          onClick={() => setAttributionView("ais")}
+                          className={`py-1.5 rounded text-[10px] font-bold tracking-wide transition-colors ${
+                            attributionView === "ais"
+                              ? "bg-white text-brand-700 shadow-sm"
+                              : "text-slate-500 hover:text-slate-700"
+                          }`}
+                        >
+                          AIS Attribution
+                        </button>
+                        <button
+                          onClick={() => setAttributionView("origin_matrix")}
+                          className={`py-1.5 rounded text-[10px] font-bold tracking-wide transition-colors ${
+                            attributionView === "origin_matrix"
+                              ? "bg-white text-brand-700 shadow-sm"
+                              : "text-slate-500 hover:text-slate-700"
+                          }`}
+                        >
+                          Cluster Origin
+                        </button>
+                      </div>
+
                       <div className="w-full h-px bg-slate-200"></div>
-                      <AisCorrelationMatrix />
+                      {attributionView === "origin_matrix" ? (
+                        <ClusterOriginMatrix incidentId={report.id} />
+                      ) : (
+                        <AisCorrelationMatrix incidentId={report.id} />
+                      )}
                     </div>
                   )}
 
@@ -195,9 +226,7 @@ export const TriageQueue = () => {
       <DossierModal
         isOpen={isDossierOpen}
         onClose={() => setIsDossierOpen(false)}
-        incidentData={
-          reports.find((r) => r.id === activeIncident) || { id: "DEMO-123" }
-        }
+        incidentId={activeIncident}
       />
     </div>
   );

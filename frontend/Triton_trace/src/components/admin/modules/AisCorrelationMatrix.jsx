@@ -1,44 +1,31 @@
 import { useIncident } from "../../../context/IncidentContext";
+import { topVesselsByIncident, colorForRank, displayScore } from "../../../data/aisTopVessels";
 import { Crosshair, Navigation, AlertTriangle } from "lucide-react";
 
-const mockSuspects = [
-  {
-    id: "v1",
-    name: "PACIFIC HORIZON",
-    mmsi: "419999999",
-    type: "Crude Tanker",
-    flag: "PA",
-    cpa: "0.8 NM",
-    score: 94.2,
-    intersectCoord: [28.18, 31.78],
-  },
-  {
-    id: "v2",
-    name: "BALTIC SWAN",
-    mmsi: "219028000",
-    type: "Chem Tanker",
-    flag: "DK",
-    cpa: "1.4 NM",
-    score: 74.2,
-    intersectCoord: [28.25, 31.72],
-  },
-  {
-    id: "v3",
-    name: "PACIFIC GLORY",
-    mmsi: "477218000",
-    type: "Cargo",
-    flag: "HK",
-    cpa: "3.8 NM",
-    score: 22.1,
-    intersectCoord: [28.05, 31.85],
-  },
-];
+export const AisCorrelationMatrix = ({ incidentId }) => {
+  const {
+    setCorrelationMarker,
+    correlationMarker,
+    setPanToCoordinate,
+    focusedVesselMmsi,
+    focusVessel,
+  } = useIncident();
 
-export const AisCorrelationMatrix = () => {
-  const { setCorrelationMarker, correlationMarker, setPanToCoordinate } =
-    useIncident();
+  const suspects = (topVesselsByIncident[incidentId] || []).map((v) => ({
+    id: v.mmsi,
+    rank: v.rank,
+    name: v.name,
+    mmsi: v.mmsi,
+    type: v.type,
+    cpa: `${v.minDistanceKm.toFixed(1)} km`,
+    score: displayScore(v.score),
+    encounterTime: new Date(v.bestEncounterTimestamp).toLocaleString(),
+    // Where this vessel's route intersects the source density cluster.
+    intersectCoord: [v.matchedCandidateLon, v.matchedCandidateLat],
+  }));
 
   const handleIntersect = (vessel) => {
+    focusVessel(vessel.mmsi);
     if (correlationMarker && correlationMarker[0] === vessel.intersectCoord[0]) {
       setCorrelationMarker(null);
       return;
@@ -67,12 +54,11 @@ export const AisCorrelationMatrix = () => {
       </div>
 
       <div className="flex flex-col gap-3">
-        {mockSuspects.map((vessel, index) => (
+        {suspects.map((vessel, index) => (
           <div
             key={vessel.id}
             className={`flex flex-col bg-white border rounded-md p-4 transition-colors shadow-sm ${
-              correlationMarker &&
-              correlationMarker[0] === vessel.intersectCoord[0]
+              focusedVesselMmsi === vessel.mmsi
                 ? "border-rose-400 ring-1 ring-rose-400/20 bg-rose-50/30"
                 : "border-slate-200"
             }`}
@@ -80,6 +66,11 @@ export const AisCorrelationMatrix = () => {
             <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: colorForRank(vessel.rank) }}
+                    title={`Route color (rank #${vessel.rank})`}
+                  />
                   <span className="text-slate-900 font-bold text-xs">
                     {vessel.name}
                   </span>
@@ -88,7 +79,7 @@ export const AisCorrelationMatrix = () => {
                   )}
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono mt-1 font-semibold">
-                  MMSI: {vessel.mmsi} | {vessel.flag}
+                  MMSI: {vessel.mmsi}
                 </span>
               </div>
 
@@ -115,10 +106,18 @@ export const AisCorrelationMatrix = () => {
               </div>
               <div className="flex flex-col p-2 bg-slate-50 rounded border border-slate-100">
                 <span className="text-[9px] font-bold text-slate-400 tracking-wider">
-                  CPA TO ORIGIN
+                  MIN. DISTANCE TO ORIGIN
                 </span>
                 <span className="text-[10px] text-slate-900 font-mono font-semibold">
                   {vessel.cpa}
+                </span>
+              </div>
+              <div className="flex flex-col p-2 bg-slate-50 rounded border border-slate-100 col-span-2">
+                <span className="text-[9px] font-bold text-slate-400 tracking-wider">
+                  ENCOUNTER TIME NEAR SPILL ORIGIN
+                </span>
+                <span className="text-[10px] text-slate-900 font-mono font-semibold">
+                  {vessel.encounterTime}
                 </span>
               </div>
             </div>
